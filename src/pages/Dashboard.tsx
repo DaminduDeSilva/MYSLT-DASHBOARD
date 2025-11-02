@@ -9,9 +9,7 @@ import { ResponseTypeChart } from '../components/ResponseTypeChart';
 import { ApiDetailsTable } from '../components/ApiDetailsTable';
 export function Dashboard() {
   return <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-white">
-        MySLT Monitoring Dashboard
-      </h2>
+      
       <FilterSection />
       <MetricCards />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

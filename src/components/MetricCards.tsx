@@ -52,7 +52,7 @@ export function MetricCards() {
             </div>}
           <div className="space-y-2">
             <div className="bg-white/20 p-2 rounded-lg w-fit">
-              <metric.icon size={18} />
+              <metric.icon size={15} />
             </div>
             <div>
               <p className={`text-xs ${metric.textColor} mb-1`}>
