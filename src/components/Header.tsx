@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Search, Bell, User, BarChart3, Server } from 'lucide-react';
 
 export function Header() {
-  const [activeNav, setActiveNav] = useState('/');
+  const location = useLocation();
 
   const navItems = [
     {
@@ -13,7 +14,7 @@ export function Header() {
     {
       path: '/',
       icon: Server,
-      label: 'System Health'
+      label: 'Servers'
     }
   ];
 
@@ -27,18 +28,18 @@ export function Header() {
         {/* Navigation Links */}
         <nav className="flex items-center gap-2">
           {navItems.map(item => (
-            <button
+            <Link
               key={item.path}
-              onClick={() => setActiveNav(item.path)}
+              to={item.path}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                activeNav === item.path
+                location.pathname === item.path
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-300 hover:bg-slate-700 hover:text-white'
               }`}
             >
               <item.icon size={18} />
               <span className="text-sm font-medium">{item.label}</span>
-            </button>
+            </Link>
           ))}
         </nav>
 
