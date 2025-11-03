@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './components/Sidebar';
+// import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 export function App() {
   return <div className="flex w-full min-h-screen bg-slate-900">

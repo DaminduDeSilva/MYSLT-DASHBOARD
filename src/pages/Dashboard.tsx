@@ -6,7 +6,7 @@ import { ResponseTimeChart } from '../components/ResponseTimeChart';
 import { SuccessRateChart } from '../components/SuccessRateChart';
 import { LiveTrafficChart } from '../components/LiveTrafficChart';
 import { ResponseTypeChart } from '../components/ResponseTypeChart';
-import { ApiDetailsTable } from '../components/ApiDetailsTable';
+// import { ApiDetailsTable } from '../components/ApiDetailsTable';
 export function Dashboard() {
   return <div className="space-y-6">
       
@@ -20,7 +20,7 @@ export function Dashboard() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <LiveTrafficChart />
-        <ApiDetailsTable />
+        {/* <ApiDetailsTable /> */}
       </div>
     </div>;
 }
