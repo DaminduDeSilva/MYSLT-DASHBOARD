@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
 export function MetricCards() {
   const metrics = [{

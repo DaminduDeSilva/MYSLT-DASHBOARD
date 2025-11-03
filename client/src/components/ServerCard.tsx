@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 import { ServerIcon, RefreshCwIcon } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 interface ServerCardProps {
@@ -27,7 +27,7 @@ export function ServerCard({
     if (value < 70) return 'bg-orange-400';
     return 'bg-red-400';
   };
-  const chartData = networkData.map((value, index) => ({
+  const chartData = networkData.map((value) => ({
     value
   }));
   return <div className="bg-slate-800 rounded-xl p-6 shadow-lg">

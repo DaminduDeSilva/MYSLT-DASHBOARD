@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
 export function LiveTrafficChart() {
   const data = [{
