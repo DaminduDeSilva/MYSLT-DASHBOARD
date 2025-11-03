@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 import { FilterSection } from '../components/FilterSection';
 import { MetricCards } from '../components/MetricCards';
 import { AccessMethodChart } from '../components/AccessMethodChart';

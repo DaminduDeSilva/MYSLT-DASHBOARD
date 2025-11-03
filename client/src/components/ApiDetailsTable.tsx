@@ -1,4 +1,4 @@
-import React from 'react';
+ 
 export function ApiDetailsTable() {
   const apiData = [{
     id: 'API-001',
