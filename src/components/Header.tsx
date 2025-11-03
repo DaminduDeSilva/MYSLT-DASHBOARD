@@ -15,7 +15,13 @@ export function Header() {
       path: '/',
       icon: Server,
       label: 'Servers'
+    },
+    {
+      path: '/api-details',
+      icon: Server,
+      label: 'API Details'
     }
+
   ];
 
   return (
