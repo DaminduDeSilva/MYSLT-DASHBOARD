@@ -57,9 +57,9 @@ export function ResponseTimeChart() {
   const [data, setData] = useState<Array<{ api: string; responseTime: number }>>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (filters?: any) => {
       try {
-        const response = await dashboardApi.getResponseTimes();
+        const response = await dashboardApi.getResponseTimes(filters);
         if (response.success && response.data) {
           const formattedData = response.data.slice(0, 6).map((item: any) => ({
             api: item.apiNumber,
@@ -73,12 +73,18 @@ export function ResponseTimeChart() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    window.addEventListener('filtersChanged', fetchData);
+    const interval = setInterval(() => fetchData(), 30000);
+    
+    const handleFilterChange = (event: any) => {
+      const filters = event.detail || {};
+      console.log('ResponseTimeChart applying filters:', filters);
+      fetchData(filters);
+    };
+    window.addEventListener('filtersChanged', handleFilterChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('filtersChanged', fetchData);
+      window.removeEventListener('filtersChanged', handleFilterChange);
     };
   }, []);
   return <div className="bg-slate-800 rounded-xl p-6">

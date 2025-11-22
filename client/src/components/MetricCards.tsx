@@ -187,9 +187,9 @@ export function MetricCards() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStats = async (filters?: any) => {
       try {
-        const response = await dashboardApi.getStats();
+        const response = await dashboardApi.getStats(filters);
         if (response.success) {
           setStats(response.data);
         }
@@ -203,13 +203,15 @@ export function MetricCards() {
     fetchStats();
 
     // Listen for filter changes
-    const handleFilterChange = () => {
-      fetchStats();
+    const handleFilterChange = (event: any) => {
+      const filters = event.detail || {};
+      console.log('MetricCards applying filters:', filters);
+      fetchStats(filters);
     };
     window.addEventListener('filtersChanged', handleFilterChange);
 
     // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
+    const interval = setInterval(() => fetchStats(), 30000);
 
     return () => {
       window.removeEventListener('filtersChanged', handleFilterChange);
