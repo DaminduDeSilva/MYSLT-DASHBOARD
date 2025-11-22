@@ -52,9 +52,9 @@ export function SuccessRateChart() {
   const [data, setData] = useState<Array<{ api: string; rate: number }>>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (filters?: any) => {
       try {
-        const response = await dashboardApi.getSuccessRates();
+        const response = await dashboardApi.getSuccessRates(filters);
         if (response.success && response.data) {
           const formattedData = response.data.slice(0, 6).map((item: any) => ({
             api: item.apiNumber,
@@ -68,12 +68,18 @@ export function SuccessRateChart() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    window.addEventListener('filtersChanged', fetchData);
+    const interval = setInterval(() => fetchData(), 30000);
+    
+    const handleFilterChange = (event: any) => {
+      const filters = event.detail || {};
+      console.log('SuccessRateChart applying filters:', filters);
+      fetchData(filters);
+    };
+    window.addEventListener('filtersChanged', handleFilterChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('filtersChanged', fetchData);
+      window.removeEventListener('filtersChanged', handleFilterChange);
     };
   }, []);
 

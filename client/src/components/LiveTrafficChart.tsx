@@ -54,7 +54,7 @@ export function LiveTrafficChart() {
   const [data, setData] = useState<Array<{ time: string; value: number }>>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (_filters?: any) => {
       try {
         const response = await dashboardApi.getLiveTraffic(30);
         if (response.success && response.data) {
@@ -69,12 +69,18 @@ export function LiveTrafficChart() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    window.addEventListener('filtersChanged', fetchData);
+    const interval = setInterval(() => fetchData(), 30000);
+    
+    const handleFilterChange = (event: any) => {
+      const filters = event.detail || {};
+      console.log('LiveTrafficChart applying filters:', filters);
+      fetchData(filters);
+    };
+    window.addEventListener('filtersChanged', handleFilterChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('filtersChanged', fetchData);
+      window.removeEventListener('filtersChanged', handleFilterChange);
     };
   }, []);
   return <div className="bg-slate-800 rounded-xl p-6">
