@@ -1,0 +1,31 @@
+setRefreshRate(event.target.value);
+    console.log('Admin changed refresh rate to (ms):', event.target.value);
+  };
+=======
+  const handleRefreshRateChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setRefreshRate(event.target.value);
+    console.log('Admin changed refresh rate to (ms):', event.target.value);
+  };
+
+  // Handle input change for new server IP
+  const handleNewServerIpChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setNewServerIp(event.target.value);
+  };
+
+  // Handle adding new server card
+  const handleAddServer = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newServerIp.trim()) {
+      return;
+    }
+    const newServer: Server = {
+      serverIp: newServerIp.trim(),
+      cpuUtilization: 0,
+      ramUsage: 0,
+      diskSpace: 0,
+      uptime: 'N/A',
+      networkTraffic: 0,
+    };
+    setServers(prev => [...prev, newServer]);
+    setNewServerIp('');
+  };

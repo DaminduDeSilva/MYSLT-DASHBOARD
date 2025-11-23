@@ -1,21 +1,41 @@
  
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { dashboardApi } from '../services/api';
 
 export function ResponseTypeChart() {
-  const data = [
-    {
-      name: 'Information',
-      value: 2100
-    },
-    {
-      name: 'Warning',
-      value: 80
-    },
-    {
-      name: 'Error',
-      value: 60
-    }
-  ];
+  const [data, setData] = useState([
+    { name: 'Information', value: 0 },
+    { name: 'Warning', value: 0 },
+    { name: 'Error', value: 0 }
+  ]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await dashboardApi.getStats();
+        if (response.success && response.data.responseTypeDistribution) {
+          const dist = response.data.responseTypeDistribution;
+          setData([
+            { name: 'Information', value: dist.Information || 0 },
+            { name: 'Warning', value: dist.Warning || 0 },
+            { name: 'Error', value: dist.Error || 0 }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching response type data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    window.addEventListener('filtersChanged', fetchData);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('filtersChanged', fetchData);
+    };
+  }, []);
 
   return (
     <div className="bg-slate-800 rounded-xl p-6">

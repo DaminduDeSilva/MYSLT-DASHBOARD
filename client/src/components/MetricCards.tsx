@@ -1,23 +1,75 @@
  
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { dashboardApi } from '../services/api';
+
+interface DashboardStats {
+  totalActiveCustomers: number;
+  totalTrafficCount: number;
+  liveTraffic: number;
+  serverRequests: {
+    '172.25.37.16': number;
+    '172.25.37.21': number;
+    '172.25.37.138': number;
+  };
+}
+
 export function MetricCards() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await dashboardApi.getStats();
+        if (response.success) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+
+    // Listen for filter changes
+    const handleFilterChange = () => {
+      fetchStats();
+    };
+    window.addEventListener('filtersChanged', handleFilterChange);
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+
+    return () => {
+      window.removeEventListener('filtersChanged', handleFilterChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (loading) {
+    return <div className="text-white">Loading...</div>;
+  }
+
   const metrics = [{
     title: 'Total Active Customers',
-    value: '637',
+    value: stats?.totalActiveCustomers.toString() || '0',
     change: '+12% from last hour',
     icon: UsersIcon,
     color: 'bg-blue-500',
     textColor: 'text-blue-100'
   }, {
     title: 'Total Traffic Count',
-    value: '15.2K',
+    value: stats?.totalTrafficCount.toLocaleString() || '0',
     change: '+8% from yesterday',
     icon: TrendingUpIcon,
     color: 'bg-green-500',
     textColor: 'text-green-100'
   }, {
     title: 'Live Traffic',
-    value: '542',
+    value: stats?.liveTraffic.toString() || '0',
     change: 'Real-time monitoring',
     icon: ActivityIcon,
     color: 'bg-emerald-500',
@@ -25,21 +77,21 @@ export function MetricCards() {
     badge: 'LIVE'
   }, {
     title: 'Number of Requests',
-    value: '2,481',
+    value: stats?.serverRequests['172.25.37.16'].toLocaleString() || '0',
     change: '172.25.37.16',
     icon: ServerIcon,
     color: 'bg-cyan-500',
     textColor: 'text-cyan-100'
   }, {
     title: 'Number of Requests',
-    value: '2,472',
+    value: stats?.serverRequests['172.25.37.21'].toLocaleString() || '0',
     change: '172.25.37.21',
     icon: ServerIcon,
     color: 'bg-purple-500',
     textColor: 'text-purple-100'
   }, {
     title: 'Number of Requests',
-    value: '1,847',
+    value: stats?.serverRequests['172.25.37.138'].toLocaleString() || '0',
     change: '172.25.37.138',
     icon: ServerIcon,
     color: 'bg-indigo-500',

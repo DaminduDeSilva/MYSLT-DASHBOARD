@@ -1,0 +1,47 @@
+const [refreshRate, setRefreshRate] = useState<string>('30000');
+
+  const [servers, setServers] = useState<Server[]>([]);
+
+  // State for refresh rate selection
+  const [refreshRate, setRefreshRate] = useState<string>('30000'); // default 30 seconds
+
+  // State for servers info
+  const [servers, setServers] = useState<Server[]>([]);
+
+  useEffect(() => {
+    // Fetch server health data from backend
+    const fetchServers = async () => {
+      try {
+        const response = await serverHealthApi.getAllServers();
+        if (response.success) {
+          setServers(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching server health in admin dashboard:', error);
+      }
+    };
+    fetchServers();
+  }, []);
+=======
+export function AdminDashboard() {
+  const [refreshRate, setRefreshRate] = useState<string>('30000');
+
+  const [servers, setServers] = useState<Server[]>([]);
+
+  // State to hold new server IP input
+  const [newServerIp, setNewServerIp] = useState<string>('');
+
+  useEffect(() => {
+    // Fetch server health data from backend
+    const fetchServers = async () => {
+      try {
+        const response = await serverHealthApi.getAllServers();
+        if (response.success) {
+          setServers(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching server health in admin dashboard:', error);
+      }
+    };
+    fetchServers();
+  }, []);

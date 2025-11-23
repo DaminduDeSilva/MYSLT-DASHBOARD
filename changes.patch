@@ -1,0 +1,24 @@
+import { serverHealthApi } from '../services/api';
+import { ServerCard } from '../components/ServerCard';
+
+interface Server {
+  serverIp: string;
+  cpuUtilization: number;
+  ramUsage: number;
+  diskSpace: number;
+  uptime: string;
+  networkTraffic?: number;
+}
+=======
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { serverHealthApi } from '../services/api';
+import { ServerCard } from '../components/ServerCard';
+
+interface Server {
+  serverIp: string;
+  cpuUtilization: number;
+  ramUsage: number;
+  diskSpace: number;
+  uptime: string;
+  networkTraffic?: number;
+}

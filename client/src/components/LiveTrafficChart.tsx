@@ -1,28 +1,35 @@
  
+import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
+import { dashboardApi } from '../services/api';
+
 export function LiveTrafficChart() {
-  const data = [{
-    time: '14:30',
-    value: 42
-  }, {
-    time: '14:35',
-    value: 55
-  }, {
-    time: '14:40',
-    value: 48
-  }, {
-    time: '14:45',
-    value: 62
-  }, {
-    time: '14:50',
-    value: 52
-  }, {
-    time: '14:55',
-    value: 58
-  }, {
-    time: '15:00',
-    value: 48
-  }];
+  const [data, setData] = useState<Array<{ time: string; value: number }>>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await dashboardApi.getLiveTraffic(30);
+        if (response.success && response.data) {
+          setData(response.data.map((item: any) => ({
+            time: item.time,
+            value: item.count
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching live traffic data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    window.addEventListener('filtersChanged', fetchData);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('filtersChanged', fetchData);
+    };
+  }, []);
   return <div className="bg-slate-800 rounded-xl p-6">
       <h3 className="text-lg font-bold text-white mb-4">
         Live Traffic Monitor

@@ -1,13 +1,36 @@
  
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { dashboardApi } from '../services/api';
 
 export function SuccessRateChart() {
-  const data = [
-    { api: '', rate: 0 },
-    { api: 'A55', rate: 68 },
-    { api: 'A35', rate: 80 },
-    { api: 'A50', rate: 40 }
-  ];
+  const [data, setData] = useState<Array<{ api: string; rate: number }>>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await dashboardApi.getSuccessRates();
+        if (response.success && response.data) {
+          const formattedData = response.data.slice(0, 6).map((item: any) => ({
+            api: item.apiNumber,
+            rate: Math.round(item.successRate)
+          }));
+          setData(formattedData);
+        }
+      } catch (error) {
+        console.error('Error fetching success rate data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    window.addEventListener('filtersChanged', fetchData);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('filtersChanged', fetchData);
+    };
+  }, []);
 
   const getColor = (rate: number) => {
     if (rate >= 80) return '#10b981'; // green

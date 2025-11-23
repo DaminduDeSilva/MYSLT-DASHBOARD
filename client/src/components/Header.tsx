@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Bell, User, BarChart3, Server } from 'lucide-react';
+import { Search, Bell, User, BarChart3, Server, Settings } from 'lucide-react';
 
 export function Header() {
   const location = useLocation();
@@ -20,8 +20,12 @@ export function Header() {
       path: '/api-details',
       icon: Server,
       label: 'API Details'
+    },
+    {
+      path: '/admin',
+      icon: Settings,
+      label: 'Admin'
     }
-
   ];
 
   return (

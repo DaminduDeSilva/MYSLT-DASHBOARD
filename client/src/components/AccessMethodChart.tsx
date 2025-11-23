@@ -1,12 +1,56 @@
  
+import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { dashboardApi } from '../services/api';
 
 export function AccessMethodChart() {
-  const data = [
-    { name: 'Mobile', value: 1200 },
-    { name: 'Web', value: 800 },
-    { name: 'Chatbot', value: 400 },
-  ];
+  const [data, setData] = useState([
+    { name: 'Mobile', value: 0 },
+    { name: 'Web', value: 0 },
+    { name: 'Chatbot', value: 0 },
+  ]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await dashboardApi.getStats();
+        if (response.success && response.data.accessMethodDistribution) {
+          const dist = response.data.accessMethodDistribution;
+          setData([
+            { name: 'Mobile', value: dist.MOBILE || 0 },
+            { name: 'Web', value: dist.WEB || 0 },
+            { name: 'Chatbot', value: dist.CHATBOT || 0 },
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching access method data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    window.addEventListener('filtersChanged', fetchData);
+
+    // Listen for new access methods added dynamically
+    const handleAccessMethodAdded = (event: CustomEvent) => {
+      const newMethod = event.detail as string;
+      setData((prevData) => {
+        // Check if newMethod already exists (case insensitive)
+        if (prevData.find((item) => item.name.toLowerCase() === newMethod.toLowerCase())) {
+          return prevData;
+        }
+        // Add new access method with zero value initially
+        return [...prevData, { name: newMethod, value: 0 }];
+      });
+    };
+    window.addEventListener('accessMethodAdded', handleAccessMethodAdded as EventListener);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('filtersChanged', fetchData);
+      window.removeEventListener('accessMethodAdded', handleAccessMethodAdded as EventListener);
+    };
+  }, []);
 
   return (
     <div className="bg-slate-800 rounded-xl p-6">
@@ -40,9 +84,12 @@ export function AccessMethodChart() {
             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             labelLine={false}
           >
-            <Cell fill="url(#cyanGradient)" />
-            <Cell fill="url(#tealGradient)" />
-            <Cell fill="url(#purpleGradient)" />
+            {data.map((entry, index) => {
+              // Using gradient fills cycling through gradients for new access methods
+              const gradientIds = ['cyanGradient', 'tealGradient', 'purpleGradient'];
+              const fillId = gradientIds[index % gradientIds.length];
+              return <Cell key={`cell-${index}`} fill={`url(#${fillId})`} />;
+            })}
           </Pie>
 
           <Tooltip
@@ -51,10 +98,8 @@ export function AccessMethodChart() {
               border: 'none',
               borderRadius: '8px'
             }}
-            /* labelStyle and itemStyle reliably apply to tooltip text nodes */
             labelStyle={{ color: '#94a3b8', fontSize: 12 }}
             itemStyle={{ color: '#fff', fontSize: 13 }}
-            // return [formattedValue, originalName] so the second column shows 'Mobile'/'Web'/'Chatbot'
             formatter={(value: number, name: string) => [value.toLocaleString(), name]}
           />
         </PieChart>

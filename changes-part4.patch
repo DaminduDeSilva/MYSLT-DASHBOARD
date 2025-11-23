@@ -1,0 +1,109 @@
+<div className="space-y-8 p-6">
+      <section className="bg-slate-800 p-6 rounded-xl">
+        <h2 className="text-2xl font-bold text-white mb-4">Admin Dashboard</h2>
+        <div className="mb-4">
+          <label htmlFor="refreshRate" className="block text-white font-semibold mb-2">
+            Change Auto-Refresh Rate
+          </label>
+          <select
+            id="refreshRate"
+            value={refreshRate}
+            onChange={handleRefreshRateChange}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="10000">10 seconds</option>
+            <option value="30000">30 seconds (default)</option>
+            <option value="60000">1 minute</option>
+            <option value="300000">5 minutes</option>
+            <option value="0">Off</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="bg-slate-800 p-6 rounded-xl">
+        <h2 className="text-2xl font-bold text-white mb-4">System Health Monitoring</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {servers.length === 0 ? (
+            <p className="text-white">Loading server data...</p>
+          ) : (
+            servers.map((server) => (
+              <ServerCard
+                key={server.serverIp}
+                ip={server.serverIp}
+                cpu={server.cpuUtilization}
+                ram={server.ramUsage}
+                disk={server.diskSpace}
+                uptime={server.uptime}
+                networkData={server.networkTraffic ? [server.networkTraffic] : []}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+=======
+  return (
+    <div className="space-y-8 p-6">
+      <section className="bg-slate-800 p-6 rounded-xl">
+        <h2 className="text-2xl font-bold text-white mb-4">Admin Dashboard</h2>
+        <div className="mb-4">
+          <label htmlFor="refreshRate" className="block text-white font-semibold mb-2">
+            Change Auto-Refresh Rate
+          </label>
+          <select
+            id="refreshRate"
+            value={refreshRate}
+            onChange={handleRefreshRateChange}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="10000">10 seconds</option>
+            <option value="30000">30 seconds (default)</option>
+            <option value="60000">1 minute</option>
+            <option value="300000">5 minutes</option>
+            <option value="0">Off</option>
+          </select>
+        </div>
+
+        {/* New server addition form */}
+        <form onSubmit={handleAddServer} className="mb-6 flex items-center gap-4">
+          <input
+            type="text"
+            placeholder="Enter new server IP"
+            value={newServerIp}
+            onChange={handleNewServerIpChange}
+            className="flex-1 px-4 py-2 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+          >
+            Add Server
+          </button>
+        </form>
+      </section>
+
+      <section className="bg-slate-800 p-6 rounded-xl">
+        <h2 className="text-2xl font-bold text-white mb-4">System Health Monitoring</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {servers.length === 0 ? (
+            <p className="text-white">Loading server data...</p>
+          ) : (
+            servers.map((server) => (
+              <ServerCard
+                key={server.serverIp}
+                ip={server.serverIp}
+                cpu={server.cpuUtilization}
+                ram={server.ramUsage}
+                disk={server.diskSpace}
+                uptime={server.uptime}
+                networkData={server.networkTraffic ? [server.networkTraffic] : []}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,25 +1,36 @@
  
+import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from 'recharts';
+import { dashboardApi } from '../services/api';
+
 export function ResponseTimeChart() {
-  const data = [{
-    api: '',
-    responseTime: 220
-  }, {
-    api: 'A1',
-    responseTime: 180
-  }, {
-    api: 'A2',
-    responseTime: 170
-  }, {
-    api: 'A4',
-    responseTime: 150 
-  }, {
-    api: 'A5',
-    responseTime: 140
-  }, {
-    api: 'A6',
-    responseTime: 110
-  }];
+  const [data, setData] = useState<Array<{ api: string; responseTime: number }>>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await dashboardApi.getResponseTimes();
+        if (response.success && response.data) {
+          const formattedData = response.data.slice(0, 6).map((item: any) => ({
+            api: item.apiNumber,
+            responseTime: item.avgResponseTime
+          }));
+          setData(formattedData);
+        }
+      } catch (error) {
+        console.error('Error fetching response time data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    window.addEventListener('filtersChanged', fetchData);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('filtersChanged', fetchData);
+    };
+  }, []);
   return <div className="bg-slate-800 rounded-xl p-6">
       <h3 className="text-lg font-bold text-white mb-4">
         API Average Response Time
