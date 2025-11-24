@@ -19,7 +19,7 @@ export function App() {
       const next = current === '/dashboard' ? '/' : '/dashboard';
       // use replace so history doesn't grow uncontrollably  change every 1 minute
       navigate(next, { replace: true });
-    }, 60000);
+    }, 1000000);
 
     return () => clearInterval(id);
   }, [location.pathname, navigate]);

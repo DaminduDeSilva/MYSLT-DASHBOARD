@@ -97,6 +97,7 @@ export function AdminPanel() {
     const updatedServers = [...servers, newServer];
     setServers(updatedServers);
     localStorage.setItem('myslt-servers', JSON.stringify(updatedServers));
+    window.dispatchEvent(new Event('serversUpdated'));
     
     setNewServerIP('');
     setShowAddServerModal(false);
@@ -107,6 +108,7 @@ export function AdminPanel() {
       const updatedServers = servers.filter(s => s.ip !== ip);
       setServers(updatedServers);
       localStorage.setItem('myslt-servers', JSON.stringify(updatedServers));
+      window.dispatchEvent(new Event('serversUpdated'));
     }
   };
 
@@ -130,9 +132,10 @@ export function AdminPanel() {
       return;
     }
 
-    const updatedMethods = [...accessMethods, { name: trimmed, value: 0 }];
+    const updatedMethods = [...accessMethods, { name: newMethodName.trim(), value: 0 }];
     setAccessMethods(updatedMethods);
     localStorage.setItem('myslt-access-methods', JSON.stringify(updatedMethods));
+    window.dispatchEvent(new Event('accessMethodsUpdated'));
     
     setNewMethodName('');
     setShowAddMethodModal(false);
@@ -145,6 +148,7 @@ export function AdminPanel() {
       const updatedMethods = accessMethods.filter(m => m.name !== selectedMethodToDelete);
       setAccessMethods(updatedMethods);
       localStorage.setItem('myslt-access-methods', JSON.stringify(updatedMethods));
+      window.dispatchEvent(new Event('accessMethodsUpdated'));
       setSelectedMethodToDelete('');
     }
   };
