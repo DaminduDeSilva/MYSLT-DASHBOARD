@@ -1,5 +1,5 @@
  
-import { ServerIcon, RefreshCwIcon } from 'lucide-react';
+import { ServerIcon, RefreshCwIcon, Monitor, Trash2 } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 interface ServerCardProps {
   ip: string;
@@ -8,6 +8,8 @@ interface ServerCardProps {
   disk: number;
   uptime: string;
   networkData: number[];
+  os?: 'windows' | 'linux';
+  onDelete?: () => void;
 }
 export function ServerCard({
   ip,
@@ -15,7 +17,9 @@ export function ServerCard({
   ram,
   disk,
   uptime,
-  networkData
+  networkData,
+  os = 'windows',
+  onDelete
 }: ServerCardProps) {
   const getColor = (value: number) => {
     if (value < 50) return 'text-green-400';
@@ -38,12 +42,27 @@ export function ServerCard({
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">{ip}</h3>
-            <p className="text-sm text-slate-400">Production Server</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-slate-400">Production Server</p>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 flex items-center gap-1">
+                <Monitor size={12} />
+                {os === 'windows' ? 'Windows' : 'Linux'}
+              </span>
+            </div>
           </div>
         </div>
         <button className="text-slate-400 hover:text-slate-600">
           <RefreshCwIcon size={20} />
         </button>
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="text-slate-400 hover:text-red-500 transition-colors ml-2"
+            title="Delete server"
+          >
+            <Trash2 size={20} />
+          </button>
+        )}
       </div>
       <div className="space-y-4">
         <div>

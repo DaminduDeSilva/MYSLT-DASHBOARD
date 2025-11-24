@@ -74,9 +74,9 @@ export function ResponseTypeChart() {
   ]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (filters?: any) => {
       try {
-        const response = await dashboardApi.getStats();
+        const response = await dashboardApi.getStats(filters);
         if (response.success && response.data.responseTypeDistribution) {
           const dist = response.data.responseTypeDistribution;
           setData([
@@ -91,12 +91,18 @@ export function ResponseTypeChart() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    window.addEventListener('filtersChanged', fetchData);
+    const interval = setInterval(() => fetchData(), 30000);
+    
+    const handleFilterChange = (event: any) => {
+      const filters = event.detail || {};
+      console.log('ResponseTypeChart applying filters:', filters);
+      fetchData(filters);
+    };
+    window.addEventListener('filtersChanged', handleFilterChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('filtersChanged', fetchData);
+      window.removeEventListener('filtersChanged', handleFilterChange);
     };
   }, []);
 

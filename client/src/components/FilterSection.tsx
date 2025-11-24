@@ -96,10 +96,33 @@ interface ApiItem {
   name: string;
 }
 
+interface FilterValues {
+  apiNumber: string;
+  apiName: string;
+  customerNumber: string;
+  date: string;
+  time: string;
+  autoRefresh: string;
+}
+
+// Store active filters globally
+let activeFilters: FilterValues = {
+  apiNumber: 'ALL',
+  apiName: '',
+  customerNumber: '',
+  date: '',
+  time: '',
+  autoRefresh: '30s'
+};
+
+export function getActiveFilters() {
+  return { ...activeFilters };
+}
+
 export function FilterSection() {
   const [isOpen, setIsOpen] = useState(false);
   const [apiList, setApiList] = useState<ApiItem[]>([]);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterValues>({
     apiNumber: 'ALL',
     apiName: '',
     customerNumber: '',
@@ -124,14 +147,94 @@ export function FilterSection() {
   }, []);
 
   const handleFilterChange = (field: string, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
+    setFilters(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Sync API number and name
+      if (field === 'apiNumber') {
+        // Find the corresponding API name
+        const api = apiList.find(a => a.number === value);
+        if (api) {
+          updated.apiName = api.name;
+        } else if (value === 'ALL') {
+          updated.apiName = '';
+        }
+      } else if (field === 'apiName') {
+        // Find the corresponding API number
+        const api = apiList.find(a => a.name === value);
+        if (api) {
+          updated.apiNumber = api.number;
+        } else if (!value) {
+          updated.apiNumber = 'ALL';
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleApplyFilters = () => {
-    // Emit filter change event or call parent callback
-    console.log('Applied filters:', filters);
-    // You can emit custom event or use context/redux here
-    window.dispatchEvent(new CustomEvent('filtersChanged', { detail: filters }));
+    // Build filter object for API
+    const apiFilters: any = {};
+    
+    // Use apiNumber (either from direct selection or from apiName selection)
+    if (filters.apiNumber && filters.apiNumber !== 'ALL') {
+      apiFilters.apiNumber = filters.apiNumber;
+    }
+    
+    if (filters.customerNumber) {
+      apiFilters.customerEmail = filters.customerNumber;
+    }
+    
+    // Combine date and time for date filtering
+    if (filters.date) {
+      const dateFrom = new Date(filters.date);
+      if (filters.time) {
+        const [hours, minutes] = filters.time.split(':');
+        dateFrom.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      } else {
+        dateFrom.setHours(0, 0, 0, 0);
+      }
+      apiFilters.dateFrom = dateFrom.toISOString();
+      
+      // Set dateTo to end of selected day
+      const dateTo = new Date(filters.date);
+      if (filters.time) {
+        const [hours, minutes] = filters.time.split(':');
+        dateTo.setHours(parseInt(hours), parseInt(minutes), 59, 999);
+      } else {
+        dateTo.setHours(23, 59, 59, 999);
+      }
+      apiFilters.dateTo = dateTo.toISOString();
+    }
+    
+    // Update global filters
+    activeFilters = { ...filters };
+    
+    console.log('Applied filters:', apiFilters);
+    
+    // Dispatch event with the formatted API filters
+    window.dispatchEvent(new CustomEvent('filtersChanged', { 
+      detail: apiFilters 
+    }));
+  };
+
+  const handleClearFilters = () => {
+    const defaultFilters: FilterValues = {
+      apiNumber: 'ALL',
+      apiName: '',
+      customerNumber: '',
+      date: '',
+      time: '',
+      autoRefresh: '30s'
+    };
+    setFilters(defaultFilters);
+    activeFilters = { ...defaultFilters };
+    
+    // Dispatch event to clear filters
+    window.dispatchEvent(new CustomEvent('filtersChanged', { 
+      detail: {} 
+    }));
   };
 
   return (
@@ -225,13 +328,20 @@ export function FilterSection() {
                 <option value="off">Off</option>
               </select>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <button 
-                className="w-full px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
                 onClick={handleApplyFilters}
               >
                 <span>🔍</span>
-                Apply Filters
+                Apply
+              </button>
+              <button 
+                className="px-6 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
+                onClick={handleClearFilters}
+                title="Clear all filters"
+              >
+                Clear
               </button>
             </div>
           </div>
