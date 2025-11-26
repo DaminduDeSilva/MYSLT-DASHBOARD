@@ -72,9 +72,16 @@ const importLogs = async () => {
     let successCount = 0;
     let errorCount = 0;
     const batchSize = 1000;
+    const maxRecords = 200000; // Limit to 200,000 records
     let batch = [];
 
     for await (const line of rl) {
+      // Stop if we've reached the limit
+      if (successCount >= maxRecords) {
+        console.log(`🛑 Reached limit of ${maxRecords} records. Stopping import.`);
+        break;
+      }
+      
       lineCount++;
       
       if (!line.trim()) continue; // Skip empty lines
