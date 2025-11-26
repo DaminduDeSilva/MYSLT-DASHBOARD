@@ -261,12 +261,13 @@ export function MetricCards() {
     textColor: 'text-green-100'
   }, {
     title: 'Live Traffic',
-    value: stats?.liveTraffic.toString() || '0',
+    value: stats?.liveTraffic ?? 0,
     change: 'Real-time monitoring',
     icon: ActivityIcon,
-    color: 'bg-emerald-500',
-    textColor: 'text-emerald-100',
-    badge: 'LIVE'
+    color: (stats?.liveTraffic ?? 0) <= 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500',
+    textColor: (stats?.liveTraffic ?? 0) <= 0 ? 'text-red-100' : 'text-emerald-100',
+    badge: 'LIVE',
+    isLiveTraffic: true
   }, {
     title: 'Number of Requests',
     value: stats?.serverRequests['172.25.37.16'].toLocaleString() || '0',
@@ -288,7 +289,7 @@ export function MetricCards() {
     icon: ServerIcon,
     color: 'bg-indigo-500',
     textColor: 'text-indigo-100'
-  }];
+  }];;
   return <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       {metrics.map((metric, index) => <div key={index} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
           {metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
@@ -302,10 +303,14 @@ export function MetricCards() {
               <p className={`text-xs ${metric.textColor} mb-1`}>
                 {metric.title}
               </p>
-              <p className="text-2xl font-bold mb-0.5">{metric.value}</p>
+              <p className="text-2xl font-bold mb-0.5">
+                {metric.isLiveTraffic
+                  ? metric.value.toString()
+                  : metric.value}
+              </p>
               <p className={`text-xs ${metric.textColor}`}>{metric.change}</p>
             </div>
           </div>
-        </div>)}
+        </div>)};
     </div>;
 }
