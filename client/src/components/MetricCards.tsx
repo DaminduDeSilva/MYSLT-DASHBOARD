@@ -169,6 +169,7 @@
  
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import emailjs from 'emailjs-com';
 import { dashboardApi } from '../services/api';
 
 interface DashboardStats {
@@ -186,12 +187,33 @@ export function MetricCards() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const sendTrafficAlert = () => {
+    emailjs.send(
+      "service_22depjr",
+      "template_wikzlfa",
+      {
+        subject: "ALERT: Live Traffic Dropped to 0",
+        message: "Live Traffic value is currently 0. Immediate attention required!"
+      },
+      "BGYMrLhoFJo2n84_3"
+    )
+    .then(() => {
+      console.log("Traffic alert email sent!");
+    })
+    .catch((err) => {
+      console.log("Failed to send traffic alert", err);
+    });
+  };
+
   useEffect(() => {
     const fetchStats = async (filters?: any) => {
       try {
         const response = await dashboardApi.getStats(filters);
-        if (response.success) {
+        if (response.success && response.data) {
           setStats(response.data);
+          if (response.data.liveTraffic <= 0) {
+            sendTrafficAlert();
+          }
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
