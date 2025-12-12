@@ -1,34 +1,49 @@
 import snmp from 'net-snmp';
 
 /**
- * SNMP OIDs for Linux systems
+ * SNMP OIDs for both Linux and Windows systems
  */
 const OIDS = {
-  // System Info
+  // System Info (Standard MIB-2 - Works on both)
   sysUpTime: '1.3.6.1.2.1.1.3.0',
   sysDescr: '1.3.6.1.2.1.1.1.0',
   
-  // CPU Usage (UCD-SNMP-MIB)
-  cpuIdle: '1.3.6.1.4.1.2021.11.11.0',      // CPU idle percentage
-  cpuUser: '1.3.6.1.4.1.2021.11.9.0',       // CPU user percentage
-  cpuSystem: '1.3.6.1.4.1.2021.11.10.0',    // CPU system percentage
+  // LINUX OIDS (UCD-SNMP-MIB)
+  linux: {
+    cpuIdle: '1.3.6.1.4.1.2021.11.11.0',
+    cpuUser: '1.3.6.1.4.1.2021.11.9.0',
+    cpuSystem: '1.3.6.1.4.1.2021.11.10.0',
+    memTotalReal: '1.3.6.1.4.1.2021.4.5.0',
+    memAvailReal: '1.3.6.1.4.1.2021.4.6.0',
+    memBuffer: '1.3.6.1.4.1.2021.4.14.0',
+    memCached: '1.3.6.1.4.1.2021.4.15.0',
+    dskPercent: '1.3.6.1.4.1.2021.9.1.9.1',
+    dskTotal: '1.3.6.1.4.1.2021.9.1.6.1',
+    dskUsed: '1.3.6.1.4.1.2021.9.1.8.1',
+  },
   
-  // Memory (UCD-SNMP-MIB)
-  memTotalReal: '1.3.6.1.4.1.2021.4.5.0',   // Total RAM in KB
-  memAvailReal: '1.3.6.1.4.1.2021.4.6.0',   // Available RAM in KB
-  memBuffer: '1.3.6.1.4.1.2021.4.14.0',     // Buffer memory in KB
-  memCached: '1.3.6.1.4.1.2021.4.15.0',     // Cached memory in KB
+  // WINDOWS OIDS (HOST-RESOURCES-MIB)
+  windows: {
+    // CPU - hrProcessorLoad (average across all CPUs)
+    cpuLoad: '1.3.6.1.2.1.25.3.3.1.2.1',
+    
+    // Memory - hrStorage
+    memPhysicalRAM: '1.3.6.1.2.1.25.2.3.1.2.1',      // Physical Memory
+    memTotalUnits: '1.3.6.1.2.1.25.2.3.1.5.1',       // Total units
+    memUsedUnits: '1.3.6.1.2.1.25.2.3.1.6.1',        // Used units
+    memUnitSize: '1.3.6.1.2.1.25.2.3.1.4.1',         // Unit size in bytes
+    
+    // Disk - hrStorageTable (Fixed Disk at index 4)
+    diskDescr: '1.3.6.1.2.1.25.2.3.1.3.4',
+    diskUnits: '1.3.6.1.2.1.25.2.3.1.4.4',
+    diskSize: '1.3.6.1.2.1.25.2.3.1.5.4',
+    diskUsed: '1.3.6.1.2.1.25.2.3.1.6.4',
+  },
   
-  // Disk (UCD-SNMP-MIB)
-  dskPath: '1.3.6.1.4.1.2021.9.1.2.1',      // Disk path (usually /)
-  dskTotal: '1.3.6.1.4.1.2021.9.1.6.1',     // Total disk size in KB
-  dskUsed: '1.3.6.1.4.1.2021.9.1.8.1',      // Used disk space in KB
-  dskPercent: '1.3.6.1.4.1.2021.9.1.9.1',   // Disk usage percentage
-  
-  // Network (IF-MIB)
-  ifInOctets: '1.3.6.1.2.1.2.2.1.10.2',     // Bytes received on interface 2 (usually eth0)
-  ifOutOctets: '1.3.6.1.2.1.2.2.1.16.2',    // Bytes sent on interface 2
-  ifDescr: '1.3.6.1.2.1.2.2.1.2.2',         // Interface description
+  // Network (IF-MIB - Standard, works on both)
+  ifInOctets: '1.3.6.1.2.1.2.2.1.10.2',
+  ifOutOctets: '1.3.6.1.2.1.2.2.1.16.2',
+  ifDescr: '1.3.6.1.2.1.2.2.1.2.2',
 };
 
 /**
@@ -102,69 +117,116 @@ const formatUptime = (timeticks) => {
 };
 
 /**
- * Get server health metrics via SNMP
+ * Get server health metrics via SNMP (Auto-detects Windows/Linux)
  */
-export const getServerMetrics = async (host, community = 'public') => {
+export const getServerMetrics = async (host, community = 'public', osType = null) => {
   let session;
   
   try {
     session = createSession(host, community);
     
-    // Query all OIDs
-    const oidList = [
-      OIDS.sysUpTime,
-      OIDS.cpuIdle,
-      OIDS.cpuUser,
-      OIDS.cpuSystem,
-      OIDS.memTotalReal,
-      OIDS.memAvailReal,
-      OIDS.memBuffer,
-      OIDS.memCached,
-      OIDS.dskPercent,
-      OIDS.ifInOctets,
-      OIDS.ifOutOctets,
-    ];
+    // Auto-detect OS if not specified
+    if (!osType) {
+      const sysDescr = await getSingleOid(session, OIDS.sysDescr);
+      const sysDescrStr = sysDescr.toString().toLowerCase();
+      osType = sysDescrStr.includes('windows') ? 'windows' : 'linux';
+      console.log(`🔍 Auto-detected OS: ${osType} for ${host}`);
+    }
     
-    const results = await getMultipleOids(session, oidList);
+    let cpuUtilization, ramUsage, diskSpace, networkTraffic, uptime, results;
     
-    // Debug: Log raw SNMP results
-    console.log(`📊 Raw SNMP data for ${host}:`, {
-      cpuIdle: results[OIDS.cpuIdle],
-      memTotal: results[OIDS.memTotalReal],
-      memAvail: results[OIDS.memAvailReal],
-      diskPercent: results[OIDS.dskPercent],
-      bytesIn: results[OIDS.ifInOctets],
-      bytesOut: results[OIDS.ifOutOctets],
-      uptime: results[OIDS.sysUpTime]
-    });
+    if (osType === 'windows') {
+      // ===== WINDOWS METRICS =====
+      const oidList = [
+        OIDS.sysUpTime,
+        OIDS.windows.cpuLoad,
+        OIDS.windows.memUnitSize,
+        OIDS.windows.memTotalUnits,
+        OIDS.windows.memUsedUnits,
+        OIDS.windows.diskUnits,
+        OIDS.windows.diskSize,
+        OIDS.windows.diskUsed,
+        OIDS.ifInOctets,
+        OIDS.ifOutOctets,
+      ];
+      
+      results = await getMultipleOids(session, oidList);
+      
+      console.log(`📊 Windows SNMP data for ${host}:`, {
+        cpuLoad: results[OIDS.windows.cpuLoad],
+        memUnitSize: results[OIDS.windows.memUnitSize],
+        memTotal: results[OIDS.windows.memTotalUnits],
+        memUsed: results[OIDS.windows.memUsedUnits],
+        diskSize: results[OIDS.windows.diskSize],
+        diskUsed: results[OIDS.windows.diskUsed],
+      });
+      
+      // CPU (directly gives percentage)
+      cpuUtilization = parseInt(results[OIDS.windows.cpuLoad]) || 0;
+      
+      // RAM calculation
+      const memUnitSize = parseInt(results[OIDS.windows.memUnitSize]) || 1024;
+      const memTotal = parseInt(results[OIDS.windows.memTotalUnits]) || 1;
+      const memUsed = parseInt(results[OIDS.windows.memUsedUnits]) || 0;
+      ramUsage = Math.max(0, Math.min(100, (memUsed / memTotal) * 100));
+      
+      // Disk calculation
+      const diskUnits = parseInt(results[OIDS.windows.diskUnits]) || 1024;
+      const diskTotal = parseInt(results[OIDS.windows.diskSize]) || 1;
+      const diskUsed = parseInt(results[OIDS.windows.diskUsed]) || 0;
+      diskSpace = Math.max(0, Math.min(100, (diskUsed / diskTotal) * 100));
+      
+    } else {
+      // ===== LINUX METRICS =====
+      const oidList = [
+        OIDS.sysUpTime,
+        OIDS.linux.cpuIdle,
+        OIDS.linux.cpuUser,
+        OIDS.linux.cpuSystem,
+        OIDS.linux.memTotalReal,
+        OIDS.linux.memAvailReal,
+        OIDS.linux.memBuffer,
+        OIDS.linux.memCached,
+        OIDS.linux.dskPercent,
+        OIDS.ifInOctets,
+        OIDS.ifOutOctets,
+      ];
+      
+      results = await getMultipleOids(session, oidList);
+      
+      console.log(`📊 Linux SNMP data for ${host}:`, {
+        cpuIdle: results[OIDS.linux.cpuIdle],
+        memTotal: results[OIDS.linux.memTotalReal],
+        memAvail: results[OIDS.linux.memAvailReal],
+        diskPercent: results[OIDS.linux.dskPercent],
+      });
+      
+      // CPU (100 - idle)
+      const cpuIdle = parseInt(results[OIDS.linux.cpuIdle]) || 0;
+      cpuUtilization = Math.max(0, Math.min(100, 100 - cpuIdle));
+      
+      // RAM calculation
+      const memTotal = parseInt(results[OIDS.linux.memTotalReal]) || 1;
+      const memAvail = parseInt(results[OIDS.linux.memAvailReal]) || 0;
+      const memBuffer = parseInt(results[OIDS.linux.memBuffer]) || 0;
+      const memCached = parseInt(results[OIDS.linux.memCached]) || 0;
+      const memUsed = memTotal - memAvail - memBuffer - memCached;
+      ramUsage = Math.max(0, Math.min(100, (memUsed / memTotal) * 100));
+      
+      // Disk percentage
+      diskSpace = parseInt(results[OIDS.linux.dskPercent]) || 0;
+    }
     
-    // Calculate CPU usage (100 - idle)
-    const cpuIdle = parseInt(results[OIDS.cpuIdle]) || 0;
-    const cpuUtilization = Math.max(0, Math.min(100, 100 - cpuIdle));
-    
-    // Calculate RAM usage
-    const memTotal = parseInt(results[OIDS.memTotalReal]) || 1;
-    const memAvail = parseInt(results[OIDS.memAvailReal]) || 0;
-    const memBuffer = parseInt(results[OIDS.memBuffer]) || 0;
-    const memCached = parseInt(results[OIDS.memCached]) || 0;
-    
-    // Available memory includes buffers and cache
-    const memUsed = memTotal - memAvail - memBuffer - memCached;
-    const ramUsage = Math.max(0, Math.min(100, (memUsed / memTotal) * 100));
-    
-    // Disk usage percentage
-    const diskSpace = parseInt(results[OIDS.dskPercent]) || 0;
-    
-    // Network traffic (convert bytes to MB)
+    // Network (common for both)
     const bytesIn = parseInt(results[OIDS.ifInOctets]) || 0;
     const bytesOut = parseInt(results[OIDS.ifOutOctets]) || 0;
     const totalBytes = bytesIn + bytesOut;
-    const networkTraffic = parseFloat((totalBytes / (1024 * 1024)).toFixed(2)); // Convert to MB
+    networkTraffic = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
     
-    // Uptime
-    const uptime = formatUptime(parseInt(results[OIDS.sysUpTime]) || 0);
+    // Uptime (common for both)
+    uptime = formatUptime(parseInt(results[OIDS.sysUpTime]) || 0);
     
-    console.log(`✅ Calculated metrics for ${host}:`, {
+    console.log(`✅ Calculated metrics for ${host} (${osType}):`, {
       cpuUtilization: cpuUtilization + '%',
       ramUsage: ramUsage.toFixed(2) + '%',
       diskSpace: diskSpace + '%',
@@ -184,6 +246,7 @@ export const getServerMetrics = async (host, community = 'public') => {
     
     return {
       success: true,
+      osType,
       metrics: {
         cpuUtilization: parseFloat(cpuUtilization.toFixed(2)),
         ramUsage: parseFloat(ramUsage.toFixed(2)),
@@ -200,7 +263,7 @@ export const getServerMetrics = async (host, community = 'public') => {
       session.close();
     }
     
-    console.error(`SNMP Error for ${host}:`, error.message);
+    console.error(`❌ SNMP Error for ${host}:`, error.message);
     
     return {
       success: false,

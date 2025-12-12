@@ -21,14 +21,19 @@ const updateAllServers = async () => {
     const updatePromises = servers.map(async (server) => {
       try {
         const community = server.snmpCommunity || 'public';
-        const result = await getServerMetrics(server.serverIp, community);
+        const osType = server.osType || null; // Use stored OS type
+        const result = await getServerMetrics(server.serverIp, community, osType);
 
         if (result.success) {
           await ServerHealth.findOneAndUpdate(
             { serverIp: server.serverIp },
-            { ...result.metrics, lastUpdated: new Date() }
+            { 
+              osType: result.osType, // Update OS type if it was auto-detected
+              ...result.metrics, 
+              lastUpdated: new Date() 
+            }
           );
-          console.log(`✅ Updated ${server.serverIp}`);
+          console.log(`✅ Updated ${server.serverIp} (${result.osType})`);
         } else {
           console.log(`❌ Failed to update ${server.serverIp}: ${result.message}`);
         }
