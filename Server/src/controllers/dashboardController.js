@@ -1,4 +1,5 @@
 import ApiLog from '../models/ApiLog.js';
+import ServerHealth from '../models/ServerHealth.js';
 import { apiMapping } from '../config/apiMapping.js';
 
 /**
@@ -29,27 +30,23 @@ export const getDashboardStats = async (req, res) => {
       filter.serverIdentifier = serverIdentifier;
     }
 
+    // Get all added servers from ServerHealth
+    const addedServers = await ServerHealth.find().select('serverIp').lean();
+    
     // Get statistics
     const [
       totalActiveCustomers,
       totalTrafficCount,
-      server16Count,
-      server21Count,
-      server138Count,
       accessMethodStats,
       responseTypeStats,
-      recentLogs
+      recentLogs,
+      serverRequestStats
     ] = await Promise.all([
       // Unique active customers
       ApiLog.distinct('customerEmail', filter).then(emails => emails.length),
       
       // Total traffic count
       ApiLog.countDocuments(filter),
-      
-      // Requests per server
-      ApiLog.countDocuments({ ...filter, serverIdentifier: '16' }),
-      ApiLog.countDocuments({ ...filter, serverIdentifier: '21' }),
-      ApiLog.countDocuments({ ...filter, serverIdentifier: '138' }),
       
       // Access method distribution
       ApiLog.aggregate([
@@ -67,12 +64,30 @@ export const getDashboardStats = async (req, res) => {
       ApiLog.find(filter)
         .sort({ date: -1 })
         .limit(100)
-        .select('date customerEmail apiNumber responseTime status')
+        .select('date customerEmail apiNumber responseTime status'),
+      
+      // Dynamic server request counts (group by serverIdentifier)
+      ApiLog.aggregate([
+        { $match: filter },
+        { $group: { _id: '$serverIdentifier', count: { $sum: 1 } } }
+      ])
     ]);
 
     // Calculate live traffic (requests in last minute)
     const oneMinuteAgo = new Date(Date.now() - 60000);
     const liveTraffic = recentLogs.filter(log => log.date >= oneMinuteAgo).length;
+
+    // Map server IPs to their request counts
+    // Convert server IPs to server identifiers for matching with logs
+    const serverRequests = {};
+    addedServers.forEach(server => {
+      const serverIp = server.serverIp;
+      // Find matching serverIdentifier in logs (might be last octet or full IP)
+      const matchingStat = serverRequestStats.find(stat => 
+        serverIp.endsWith(`.${stat._id}`) || stat._id === serverIp
+      );
+      serverRequests[serverIp] = matchingStat ? matchingStat.count : 0;
+    });
 
     res.json({
       success: true,
@@ -80,11 +95,7 @@ export const getDashboardStats = async (req, res) => {
         totalActiveCustomers,
         totalTrafficCount,
         liveTraffic,
-        serverRequests: {
-          '172.25.37.16': server16Count,
-          '172.25.37.21': server21Count,
-          '172.25.37.138': server138Count
-        },
+        serverRequests,
         accessMethodDistribution: accessMethodStats.reduce((acc, item) => {
           acc[item._id] = item.count;
           return acc;

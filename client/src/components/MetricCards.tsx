@@ -225,7 +225,18 @@ export function MetricCards() {
     return <div className="text-white">Loading...</div>;
   }
 
-  const metrics = [{
+  // Define colors for server cards (cycle through these)
+  const serverColors = [
+    { color: 'bg-cyan-500', textColor: 'text-cyan-100' },
+    { color: 'bg-purple-500', textColor: 'text-purple-100' },
+    { color: 'bg-indigo-500', textColor: 'text-indigo-100' },
+    { color: 'bg-pink-500', textColor: 'text-pink-100' },
+    { color: 'bg-rose-500', textColor: 'text-rose-100' },
+    { color: 'bg-orange-500', textColor: 'text-orange-100' },
+  ];
+
+  // Base metrics (always shown)
+  const baseMetrics = [{
     title: 'Total Active Customers',
     value: stats?.totalActiveCustomers.toString() || '0',
     change: '+12% from last hour',
@@ -247,30 +258,31 @@ export function MetricCards() {
     color: 'bg-emerald-500',
     textColor: 'text-emerald-100',
     badge: 'LIVE'
-  }, {
-    title: 'Number of Requests',
-    value: stats?.serverRequests['172.25.37.16'].toLocaleString() || '0',
-    change: '172.25.37.16',
-    icon: ServerIcon,
-    color: 'bg-cyan-500',
-    textColor: 'text-cyan-100'
-  }, {
-    title: 'Number of Requests',
-    value: stats?.serverRequests['172.25.37.21'].toLocaleString() || '0',
-    change: '172.25.37.21',
-    icon: ServerIcon,
-    color: 'bg-purple-500',
-    textColor: 'text-purple-100'
-  }, {
-    title: 'Number of Requests',
-    value: stats?.serverRequests['172.25.37.138'].toLocaleString() || '0',
-    change: '172.25.37.138',
-    icon: ServerIcon,
-    color: 'bg-indigo-500',
-    textColor: 'text-indigo-100'
   }];
-  return <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {metrics.map((metric, index) => <div key={index} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
+
+  // Dynamic server metrics (only show servers that have been added)
+  const serverMetrics = stats?.serverRequests 
+    ? Object.entries(stats.serverRequests).map(([ip, count], index) => ({
+        title: 'Number of Requests',
+        value: count.toLocaleString(),
+        change: ip,
+        icon: ServerIcon,
+        ...serverColors[index % serverColors.length]
+      }))
+    : [];
+
+  const metrics = [...baseMetrics, ...serverMetrics];
+  
+  // Determine grid columns based on number of metrics
+  const totalMetrics = metrics.length;
+  const gridCols = totalMetrics <= 3 
+    ? 'grid-cols-1 md:grid-cols-3' 
+    : totalMetrics <= 6 
+      ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
+      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6';
+  
+  return <div className={`grid ${gridCols} gap-4`}>
+      {metrics.map((metric, index) => <div key={`${metric.change}-${index}`} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
           {metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
               {metric.badge}
             </div>}
