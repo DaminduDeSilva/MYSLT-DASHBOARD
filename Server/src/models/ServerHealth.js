@@ -37,6 +37,10 @@ const serverHealthSchema = new mongoose.Schema({
     enum: ['healthy', 'warning', 'critical'],
     default: 'healthy'
   },
+  snmpCommunity: {
+    type: String,
+    default: 'public'
+  },
   lastUpdated: {
     type: Date,
     default: Date.now
