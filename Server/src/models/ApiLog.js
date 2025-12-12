@@ -9,8 +9,8 @@ const apiLogSchema = new mongoose.Schema({
   accessMethod: {
     type: String,
     required: true,
-    enum: ['MOBILE', 'WEB', 'CHATBOT'],
     index: true
+    // No enum - allows any access method value from logs
   },
   customerEmail: {
     type: String,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Server, Clock, GitBranch, Plus, Trash2, Save, X } from 'lucide-react';
+import { Server, Clock, GitBranch, Trash2, Save, Plus, X } from 'lucide-react';
 import { serverHealthApi } from '../services/api';
 
 interface ServerItem {
@@ -11,11 +11,6 @@ interface ServerItem {
   disk: number;
   uptime: string;
   networkData: { time: string; value: number }[];
-}
-
-interface AccessMethod {
-  name: string;
-  value: number;
 }
 
 export function AdminPanel() {
@@ -35,11 +30,7 @@ export function AdminPanel() {
     charts: 30
   });
   
-  // Access Methods
-  const [accessMethods, setAccessMethods] = useState<AccessMethod[]>([]);
-  const [showAddMethodModal, setShowAddMethodModal] = useState(false);
-  const [newMethodName, setNewMethodName] = useState('');
-  const [selectedMethodToDelete, setSelectedMethodToDelete] = useState('');
+  // Access Methods - Auto-detected from logs (no manual management needed)
 
   useEffect(() => {
     // Check authentication
@@ -52,12 +43,6 @@ export function AdminPanel() {
 
     // Fetch servers from backend
     fetchServers();
-
-    // Load access methods
-    const savedMethods = localStorage.getItem('myslt-access-methods');
-    if (savedMethods) {
-      setAccessMethods(JSON.parse(savedMethods));
-    }
 
     // Load refresh rates
     const savedRates = localStorage.getItem('myslt-refresh-rates');
@@ -163,39 +148,6 @@ export function AdminPanel() {
     
     // Dispatch event to notify components
     window.dispatchEvent(new CustomEvent('refreshRatesChanged', { detail: refreshRates }));
-  };
-
-  const handleAddAccessMethod = () => {
-    const trimmed = newMethodName.trim();
-    if (!trimmed) {
-      alert('Please enter a method name');
-      return;
-    }
-
-    if (accessMethods.some(m => m.name.toLowerCase() === trimmed.toLowerCase())) {
-      alert('Access method already exists');
-      return;
-    }
-
-    const updatedMethods = [...accessMethods, { name: newMethodName.trim(), value: 0 }];
-    setAccessMethods(updatedMethods);
-    localStorage.setItem('myslt-access-methods', JSON.stringify(updatedMethods));
-    window.dispatchEvent(new Event('accessMethodsUpdated'));
-    
-    setNewMethodName('');
-    setShowAddMethodModal(false);
-  };
-
-  const handleDeleteAccessMethod = () => {
-    if (!selectedMethodToDelete) return;
-
-    if (confirm(`Are you sure you want to remove "${selectedMethodToDelete}"?`)) {
-      const updatedMethods = accessMethods.filter(m => m.name !== selectedMethodToDelete);
-      setAccessMethods(updatedMethods);
-      localStorage.setItem('myslt-access-methods', JSON.stringify(updatedMethods));
-      window.dispatchEvent(new Event('accessMethodsUpdated'));
-      setSelectedMethodToDelete('');
-    }
   };
 
   if (!isAuthenticated) {
@@ -321,40 +273,22 @@ export function AdminPanel() {
           </div>
         </div>
 
-        {/* Access Methods Management */}
+        {/* Access Methods - Auto-Detected from Logs */}
         <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <GitBranch className="text-purple-500" size={24} />
-              <h2 className="text-xl font-bold text-white">Access Methods</h2>
-            </div>
-            <button
-              onClick={() => setShowAddMethodModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <Plus size={18} />
-              Add Method
-            </button>
+          <div className="flex items-center gap-3 mb-4">
+            <GitBranch className="text-purple-500" size={24} />
+            <h2 className="text-xl font-bold text-white">Access Methods</h2>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {accessMethods.map((method) => (
-              <div key={method.name} className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                <div className="flex items-center justify-between">
-                  <span className="text-white font-medium">{method.name}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedMethodToDelete(method.name);
-                      handleDeleteAccessMethod();
-                    }}
-                    className="text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <p className="text-slate-400 text-sm mt-2">{method.value} requests</p>
-              </div>
-            ))}
+          <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+            <p className="text-slate-300 mb-2">
+              ℹ️ Access methods are automatically detected from your API logs
+            </p>
+            <p className="text-slate-400 text-sm">
+              The system reads the access method field (MOBILE, WEB, CHATBOT, etc.) from your log entries and displays them in the dashboard automatically. No manual configuration needed.
+            </p>
+            <p className="text-slate-400 text-sm mt-2">
+              <strong>Log Format:</strong> startTimestamp,<strong className="text-purple-400">ACCESS_METHOD</strong>,email,status,apiNumber,...
+            </p>
           </div>
         </div>
       </div>
@@ -440,59 +374,6 @@ export function AdminPanel() {
         </div>
       )}
 
-      {/* Add Access Method Modal */}
-      {showAddMethodModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl border border-slate-700">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white">Add Access Method</h3>
-              <button
-                onClick={() => {
-                  setShowAddMethodModal(false);
-                  setNewMethodName('');
-                }}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Method Name
-                </label>
-                <input
-                  type="text"
-                  value={newMethodName}
-                  onChange={(e) => setNewMethodName(e.target.value)}
-                  placeholder="e.g., Desktop, Tablet, API"
-                  className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 border border-slate-600"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddAccessMethod()}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleAddAccessMethod}
-                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-                >
-                  Add Method
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAddMethodModal(false);
-                    setNewMethodName('');
-                  }}
-                  className="px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

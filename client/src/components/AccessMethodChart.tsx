@@ -7,58 +7,10 @@ interface AccessMethod {
   value: number;
 }
 
-const STORAGE_KEY = 'myslt-access-methods';
 const DEFAULT_COLORS = ['#06b6d4', '#0891b2', '#a855f7', '#14b8a6', '#f59e0b', '#10b981'];
 
-// Helper function to remove duplicates (case-insensitive)
-const deduplicateData = (arr: AccessMethod[]): AccessMethod[] => {
-  const seen = new Map<string, AccessMethod>();
-  arr.forEach(item => {
-    const key = item.name.toLowerCase();
-    if (!seen.has(key)) {
-      seen.set(key, item);
-    }
-  });
-  return Array.from(seen.values());
-};
-
 export function AccessMethodChart() {
-  const [data, setData] = useState<AccessMethod[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const parsed = saved ? JSON.parse(saved) : [
-        { name: 'Mobile', value: 0 },
-        { name: 'Web', value: 0 },
-        { name: 'Chatbot', value: 0 },
-      ];
-      return deduplicateData(parsed);
-    } catch (err) {
-      return [
-        { name: 'Mobile', value: 0 },
-        { name: 'Web', value: 0 },
-        { name: 'Chatbot', value: 0 },
-      ];
-    }
-  });
-
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (err) {
-      console.error('Failed to save access methods:', err);
-    }
-  }, [data]);
-
-  // Reload when changed in admin panel
-  useEffect(() => {
-    const handleReload = () => {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setData(deduplicateData(JSON.parse(saved)));
-    };
-    window.addEventListener('accessMethodsUpdated', handleReload);
-    return () => window.removeEventListener('accessMethodsUpdated', handleReload);
-  }, []);
+  const [data, setData] = useState<AccessMethod[]>([]);
 
   useEffect(() => {
     const fetchData = async (filters?: any) => {
@@ -66,24 +18,17 @@ export function AccessMethodChart() {
         const response = await dashboardApi.getStats(filters);
         if (response.success && response.data.accessMethodDistribution) {
           const dist = response.data.accessMethodDistribution;
-          setData(prevData => {
-            const updated = prevData.map(item => ({
-              ...item,
-              value: dist[item.name.toUpperCase()] ?? item.value
-            }));
-            return deduplicateData(updated);
-          });
+          // Convert backend data to chart format
+          const chartData = Object.entries(dist).map(([name, value]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(), // Capitalize first letter
+            value: value as number
+          }));
+          setData(chartData);
         }
       } catch (error) {
         console.error('Error fetching access method data:', error);
         // Clear data when backend connection fails
-        const emptyData = [
-          { name: 'Mobile', value: 0 },
-          { name: 'Web', value: 0 },
-          { name: 'Chatbot', value: 0 },
-        ];
-        setData(emptyData);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyData));
+        setData([]);
       }
     };
 
