@@ -188,11 +188,11 @@ export const testSNMPConnectionEndpoint = async (req, res) => {
 };
 
 /**
- * Add server with SNMP auto-detection
+ * Add server with SNMP auto-detection (Auto-detects Windows/Linux)
  */
 export const addServerWithSNMP = async (req, res) => {
   try {
-    const { serverIp, community = 'public' } = req.body;
+    const { serverIp, community = 'public', osType = null } = req.body;
 
     if (!serverIp) {
       return res.status(400).json({
@@ -214,8 +214,10 @@ export const addServerWithSNMP = async (req, res) => {
       });
     }
 
-    // Fetch initial metrics
-    const metricsResult = await getServerMetrics(serverIp, community);
+    console.log(`✅ Connection test passed: ${connectionTest.systemDescription}`);
+
+    // Fetch initial metrics (auto-detects OS if not specified)
+    const metricsResult = await getServerMetrics(serverIp, community, osType);
     
     if (!metricsResult.success) {
       return res.status(500).json({
@@ -225,11 +227,14 @@ export const addServerWithSNMP = async (req, res) => {
       });
     }
 
+    console.log(`📊 Detected OS: ${metricsResult.osType}`);
+
     // Save to database
     const server = await ServerHealth.findOneAndUpdate(
       { serverIp },
       {
         serverIp,
+        osType: metricsResult.osType,
         ...metricsResult.metrics,
         snmpCommunity: community,
         lastUpdated: new Date()
@@ -239,7 +244,7 @@ export const addServerWithSNMP = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Server added successfully with SNMP',
+      message: `Server added successfully (OS: ${metricsResult.osType})`,
       data: server
     });
   } catch (error) {
