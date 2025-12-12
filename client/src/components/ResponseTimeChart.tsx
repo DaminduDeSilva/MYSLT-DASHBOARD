@@ -69,6 +69,8 @@ export function ResponseTimeChart() {
         }
       } catch (error) {
         console.error('Error fetching response time data:', error);
+        // Clear data when backend connection fails
+        setData([]);
       }
     };
 

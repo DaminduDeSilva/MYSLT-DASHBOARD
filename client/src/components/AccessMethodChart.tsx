@@ -76,6 +76,14 @@ export function AccessMethodChart() {
         }
       } catch (error) {
         console.error('Error fetching access method data:', error);
+        // Clear data when backend connection fails
+        const emptyData = [
+          { name: 'Mobile', value: 0 },
+          { name: 'Web', value: 0 },
+          { name: 'Chatbot', value: 0 },
+        ];
+        setData(emptyData);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(emptyData));
       }
     };
 

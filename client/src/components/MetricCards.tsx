@@ -195,6 +195,8 @@ export function MetricCards() {
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
+        // Clear data when backend connection fails
+        setStats(null);
       } finally {
         setLoading(false);
       }
