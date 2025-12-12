@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../Logo/SLTMobitel_Logo.svg.png';
 import { LogIn, User, Lock, AlertCircle } from 'lucide-react';
 
 export function Login() {
@@ -36,9 +37,7 @@ export function Login() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            <span className="text-blue-500">MySLT</span> Monitoring
-          </h1>
+          <img src={logo} alt="MySLT Logo" className="mx-auto h-20 w-auto object-contain select-none mb-2" />
           <p className="text-slate-400">Admin Portal</p>
         </div>
 
