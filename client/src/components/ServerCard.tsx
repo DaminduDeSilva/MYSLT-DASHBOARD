@@ -8,6 +8,7 @@ interface ServerCardProps {
   disk: number;
   uptime: string;
   networkData: number[];
+  networkTraffic?: number;
   os?: 'windows' | 'linux';
   onDelete?: () => void;
 }
@@ -18,6 +19,7 @@ export function ServerCard({
   disk,
   uptime,
   networkData,
+  networkTraffic = 0,
   os = 'windows',
   onDelete
 }: ServerCardProps) {
@@ -103,7 +105,7 @@ export function ServerCard({
         <div>
           <div className="flex justify-between mb-2">
             <span className="text-sm text-slate-400">Network Traffic</span>
-            <span className="text-sm font-bold text-blue-400">NaN MB/s</span>
+            <span className="text-sm font-bold text-blue-400">{networkTraffic.toFixed(2)} MB</span>
           </div>
           <div className="h-16">
             <ResponsiveContainer width="100%" height="100%">

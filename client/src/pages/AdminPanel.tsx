@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Server, Clock, GitBranch, Plus, Trash2, Save, X } from 'lucide-react';
+import { serverHealthApi } from '../services/api';
 
 interface ServerItem {
   ip: string;
@@ -49,11 +50,8 @@ export function AdminPanel() {
     }
     setIsAuthenticated(true);
 
-    // Load servers
-    const savedServers = localStorage.getItem('myslt-servers');
-    if (savedServers) {
-      setServers(JSON.parse(savedServers));
-    }
+    // Fetch servers from backend
+    fetchServers();
 
     // Load access methods
     const savedMethods = localStorage.getItem('myslt-access-methods');
@@ -68,7 +66,30 @@ export function AdminPanel() {
     }
   }, [navigate]);
 
-  const handleAddServer = () => {
+  const fetchServers = async () => {
+    try {
+      const response = await serverHealthApi.getAllServers();
+      if (response.success && response.data) {
+        const transformedServers = response.data.map((server: any) => ({
+          ip: server.serverIp,
+          os: server.serverIp.startsWith('192.168') ? 'linux' : 'windows' as 'windows' | 'linux',
+          cpu: server.cpuUtilization,
+          ram: server.ramUsage,
+          disk: server.diskSpace,
+          uptime: server.uptime,
+          networkData: Array.from({ length: 20 }, (_, i) => ({
+            time: `${i * 2}h`,
+            value: Math.floor(Math.random() * 100)
+          }))
+        }));
+        setServers(transformedServers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch servers:', error);
+    }
+  };
+
+  const handleAddServer = async () => {
     if (!newServerIP.trim()) {
       alert('Please enter a valid IP address');
       return;
@@ -80,35 +101,59 @@ export function AdminPanel() {
       return;
     }
 
-    // Mock server data
-    const newServer: ServerItem = {
-      ip: newServerIP,
-      os: newServerOS,
-      cpu: Math.floor(Math.random() * 30) + 40,
-      ram: Math.floor(Math.random() * 30) + 50,
-      disk: Math.floor(Math.random() * 20) + 60,
-      uptime: '15d 7h 23m',
-      networkData: Array.from({ length: 20 }, (_, i) => ({
-        time: `${i * 2}h`,
-        value: Math.floor(Math.random() * 100)
-      }))
-    };
+    try {
+      setShowAddServerModal(false);
+      alert('Adding server... This may take a few seconds while fetching SNMP data.');
+      
+      // Call SNMP API to add server with real data
+      const response = await fetch('http://localhost:5000/api/server-health/snmp/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serverIp: newServerIP,
+          community: 'public'
+        })
+      });
 
-    const updatedServers = [...servers, newServer];
-    setServers(updatedServers);
-    localStorage.setItem('myslt-servers', JSON.stringify(updatedServers));
-    window.dispatchEvent(new Event('serversUpdated'));
-    
-    setNewServerIP('');
-    setShowAddServerModal(false);
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Server added successfully with real SNMP data!');
+        await fetchServers();
+        window.dispatchEvent(new Event('serversUpdated'));
+        setNewServerIP('');
+      } else {
+        alert(`Failed to add server: ${result.message}\n\nMake sure SNMP is enabled on the server.`);
+        setShowAddServerModal(true);
+      }
+    } catch (error) {
+      console.error('Error adding server:', error);
+      alert('Error adding server. Make sure the backend server is running.');
+      setShowAddServerModal(true);
+    }
   };
 
-  const handleDeleteServer = (ip: string) => {
-    if (confirm(`Are you sure you want to remove server ${ip}?`)) {
-      const updatedServers = servers.filter(s => s.ip !== ip);
-      setServers(updatedServers);
-      localStorage.setItem('myslt-servers', JSON.stringify(updatedServers));
-      window.dispatchEvent(new Event('serversUpdated'));
+  const handleDeleteServer = async (ip: string) => {
+    if (!confirm(`Are you sure you want to remove server ${ip}?`)) {
+      return;
+    }
+
+    try {
+      // Call backend API to delete server
+      const response = await fetch(`http://localhost:5000/api/server-health/${ip}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        alert('Server deleted successfully!');
+        await fetchServers();
+        window.dispatchEvent(new Event('serversUpdated'));
+      } else {
+        alert('Failed to delete server');
+      }
+    } catch (error) {
+      console.error('Error deleting server:', error);
+      alert('Error deleting server. Make sure the backend server is running.');
     }
   };
 

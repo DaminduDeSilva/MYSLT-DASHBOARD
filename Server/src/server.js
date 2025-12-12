@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import dashboardRoutes from './routes/dashboard.js';
 import serverHealthRoutes from './routes/serverHealth.js';
+import { startSNMPMonitor } from './utils/snmpMonitor.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,6 +68,11 @@ app.listen(PORT, () => {
   console.log(`🌐 Server running on: http://localhost:${PORT}`);
   console.log(`💚 Health check: http://localhost:${PORT}/health`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // Start SNMP monitoring after server starts
+  setTimeout(() => {
+    startSNMPMonitor();
+  }, 2000); // Wait 2 seconds for DB connection to stabilize
 });
 
 export default app;

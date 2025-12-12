@@ -3,7 +3,11 @@ import {
   getAllServersHealth,
   getServerHealth,
   updateServerHealth,
-  initializeServerHealth
+  initializeServerHealth,
+  getServerMetricsSNMP,
+  testSNMPConnectionEndpoint,
+  addServerWithSNMP,
+  deleteServer
 } from '../controllers/serverHealthController.js';
 
 const router = express.Router();
@@ -19,5 +23,13 @@ router.post('/update', updateServerHealth);
 
 // Initialize server health data
 router.post('/initialize', initializeServerHealth);
+
+// SNMP Routes
+router.get('/snmp/:ip', getServerMetricsSNMP);
+router.post('/snmp/test', testSNMPConnectionEndpoint);
+router.post('/snmp/add', addServerWithSNMP);
+
+// Delete server
+router.delete('/:ip', deleteServer);
 
 export default router;

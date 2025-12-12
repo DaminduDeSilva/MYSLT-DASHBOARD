@@ -1,4 +1,5 @@
 import ServerHealth from '../models/ServerHealth.js';
+import { getServerMetrics, testSNMPConnection } from '../services/snmpService.js';
 
 /**
  * Get all servers health status
@@ -94,50 +95,176 @@ export const updateServerHealth = async (req, res) => {
 };
 
 /**
- * Initialize server health data with mock data
+ * Delete a server
  */
-export const initializeServerHealth = async (req, res) => {
+export const deleteServer = async (req, res) => {
   try {
-    const servers = [
-      {
-        serverIp: '172.25.37.16',
-        cpuUtilization: 46.88,
-        ramUsage: 61.91,
-        diskSpace: 60.27,
-        networkTraffic: 0,
-        uptime: '11d 0h 2m',
-        status: 'healthy'
-      },
-      {
-        serverIp: '172.25.37.21',
-        cpuUtilization: 63.05,
-        ramUsage: 71.54,
-        diskSpace: 49.48,
-        networkTraffic: 0,
-        uptime: '15d 0h 2m',
-        status: 'warning'
-      },
-      {
-        serverIp: '172.25.37.138',
-        cpuUtilization: 41.01,
-        ramUsage: 51.59,
-        diskSpace: 66.9,
-        networkTraffic: 0,
-        uptime: '30d 0h 2m',
-        status: 'healthy'
-      }
-    ];
+    const { ip } = req.params;
 
-    // Delete existing data
-    await ServerHealth.deleteMany({});
+    const result = await ServerHealth.findOneAndDelete({ serverIp: ip });
 
-    // Insert new data
-    const result = await ServerHealth.insertMany(servers);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Server not found'
+      });
+    }
 
     res.json({
       success: true,
-      message: 'Server health data initialized',
-      data: result
+      message: 'Server deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deleteServer:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting server',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get server metrics via SNMP
+ */
+export const getServerMetricsSNMP = async (req, res) => {
+  try {
+    const { ip } = req.params;
+    const { community = 'public' } = req.query;
+
+    console.log(`Fetching SNMP metrics for ${ip}...`);
+
+    const result = await getServerMetrics(ip, community);
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        serverIp: ip,
+        ...result.metrics
+      }
+    });
+  } catch (error) {
+    console.error('Error in getServerMetricsSNMP:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching SNMP metrics',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Test SNMP connection to a server
+ */
+export const testSNMPConnectionEndpoint = async (req, res) => {
+  try {
+    const { ip } = req.body;
+    const { community = 'public' } = req.body;
+
+    if (!ip) {
+      return res.status(400).json({
+        success: false,
+        message: 'Server IP is required'
+      });
+    }
+
+    console.log(`Testing SNMP connection to ${ip}...`);
+
+    const result = await testSNMPConnection(ip, community);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error in testSNMPConnectionEndpoint:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error testing SNMP connection',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Add server with SNMP auto-detection
+ */
+export const addServerWithSNMP = async (req, res) => {
+  try {
+    const { serverIp, community = 'public' } = req.body;
+
+    if (!serverIp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Server IP is required'
+      });
+    }
+
+    console.log(`Adding server ${serverIp} with SNMP...`);
+
+    // Test connection first
+    const connectionTest = await testSNMPConnection(serverIp, community);
+    
+    if (!connectionTest.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to connect to server via SNMP. Please ensure SNMP is enabled.',
+        error: connectionTest.error
+      });
+    }
+
+    // Fetch initial metrics
+    const metricsResult = await getServerMetrics(serverIp, community);
+    
+    if (!metricsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Connected but failed to fetch metrics',
+        error: metricsResult.error
+      });
+    }
+
+    // Save to database
+    const server = await ServerHealth.findOneAndUpdate(
+      { serverIp },
+      {
+        serverIp,
+        ...metricsResult.metrics,
+        snmpCommunity: community,
+        lastUpdated: new Date()
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Server added successfully with SNMP',
+      data: server
+    });
+  } catch (error) {
+    console.error('Error in addServerWithSNMP:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding server',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Initialize server health data (removed dummy data)
+ * Use addServerWithSNMP endpoint to add real servers via SNMP
+ */
+export const initializeServerHealth = async (req, res) => {
+  try {
+    // Clear all existing servers
+    await ServerHealth.deleteMany({});
+
+    res.json({
+      success: true,
+      message: 'Server health data cleared. Add servers via SNMP using /api/server-health/snmp/add endpoint',
+      data: []
     });
   } catch (error) {
     console.error('Error in initializeServerHealth:', error);
