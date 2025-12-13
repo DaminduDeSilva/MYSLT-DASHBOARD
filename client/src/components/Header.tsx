@@ -1,5 +1,6 @@
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import logo from '../Logo/SLTMobitel_Logo.svg.png';
 import { Search, Bell, User, BarChart3, Server, LogOut, LogIn, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
@@ -76,9 +77,9 @@ export function Header() {
   return (
     <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-6">
       <div className="flex items-center gap-6 flex-1">
-        <h1 className="text-xl font-bold text-white whitespace-nowrap">
-          <span className="text-blue-500">MySLT</span> Monitoring
-        </h1>
+        <Link to="/" className="flex items-center gap-2">
+          <img src={logo} alt="MySLT Logo" className="h-14 w-auto object-contain select-none" />
+        </Link>
 
         {/* Navigation Links */}
         <nav className="flex items-center gap-2">

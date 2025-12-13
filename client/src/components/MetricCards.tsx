@@ -169,29 +169,57 @@
  
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import emailjs from 'emailjs-com';
 import { dashboardApi } from '../services/api';
 
 interface DashboardStats {
   totalActiveCustomers: number;
   totalTrafficCount: number;
   liveTraffic: number;
-  serverRequests: {
-    '172.25.37.16': number;
-    '172.25.37.21': number;
-    '172.25.37.138': number;
-  };
+  serverRequests: Record<string, number>;
+}
+
+interface MetricCard {
+  title: string;
+  value: string;
+  change: string;
+  icon: any;
+  color: string;
+  textColor: string;
+  badge?: string;
 }
 
 export function MetricCards() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const sendTrafficAlert = () => {
+    emailjs.send(
+      "service_22depjr",
+      "template_wikzlfa",
+      {
+        subject: "ALERT: Live Traffic Dropped to 0",
+        message: "Live Traffic value is currently 0. Immediate attention required!"
+      },
+      "BGYMrLhoFJo2n84_3"
+    )
+    .then(() => {
+      console.log("Traffic alert email sent!");
+    })
+    .catch((err) => {
+      console.log("Failed to send traffic alert", err);
+    });
+  };
+
   useEffect(() => {
     const fetchStats = async (filters?: any) => {
       try {
         const response = await dashboardApi.getStats(filters);
-        if (response.success) {
+        if (response.success && response.data) {
           setStats(response.data);
+          if (response.data.liveTraffic <= 0) {
+            sendTrafficAlert();
+          }
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -236,7 +264,7 @@ export function MetricCards() {
   ];
 
   // Base metrics (always shown)
-  const baseMetrics = [{
+  const baseMetrics: MetricCard[] = [{
     title: 'Total Active Customers',
     value: stats?.totalActiveCustomers.toString() || '0',
     change: '+12% from last hour',
@@ -252,7 +280,7 @@ export function MetricCards() {
     textColor: 'text-green-100'
   }, {
     title: 'Live Traffic',
-    value: stats?.liveTraffic.toString() || '0',
+    value: stats?.liveTraffic?.toString() || '0',
     change: 'Real-time monitoring',
     icon: ActivityIcon,
     color: 'bg-emerald-500',
@@ -261,7 +289,7 @@ export function MetricCards() {
   }];
 
   // Dynamic server metrics (only show servers that have been added)
-  const serverMetrics = stats?.serverRequests 
+  const serverMetrics: MetricCard[] = stats?.serverRequests 
     ? Object.entries(stats.serverRequests).map(([ip, count], index) => ({
         title: 'Number of Requests',
         value: count.toLocaleString(),
@@ -283,7 +311,7 @@ export function MetricCards() {
   
   return <div className={`grid ${gridCols} gap-4`}>
       {metrics.map((metric, index) => <div key={`${metric.change}-${index}`} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
-          {metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+          {'badge' in metric && metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
               {metric.badge}
             </div>}
           <div className="space-y-2">
