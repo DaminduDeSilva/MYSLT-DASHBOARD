@@ -169,6 +169,7 @@
  
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import emailjs from 'emailjs-com';
 import { dashboardApi } from '../services/api';
 
 interface DashboardStats {
@@ -186,12 +187,33 @@ export function MetricCards() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const sendTrafficAlert = () => {
+    emailjs.send(
+      "service_22depjr",
+      "template_wikzlfa",
+      {
+        subject: "ALERT: Live Traffic Dropped to 0",
+        message: "Live Traffic value is currently 0. Immediate attention required!"
+      },
+      "BGYMrLhoFJo2n84_3"
+    )
+    .then(() => {
+      console.log("Traffic alert email sent!");
+    })
+    .catch((err) => {
+      console.log("Failed to send traffic alert", err);
+    });
+  };
+
   useEffect(() => {
     const fetchStats = async (filters?: any) => {
       try {
         const response = await dashboardApi.getStats(filters);
-        if (response.success) {
+        if (response.success && response.data) {
           setStats(response.data);
+          if (response.data.liveTraffic <= 0) {
+            sendTrafficAlert();
+          }
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -252,37 +274,37 @@ export function MetricCards() {
     textColor: 'text-green-100'
   }, {
     title: 'Live Traffic',
-    value: stats?.liveTraffic.toString() || '0',
+    value: stats?.liveTraffic ?? 0,
     change: 'Real-time monitoring',
     icon: ActivityIcon,
-    color: 'bg-emerald-500',
-    textColor: 'text-emerald-100',
-    badge: 'LIVE'
-  }];
-
-  // Dynamic server metrics (only show servers that have been added)
-  const serverMetrics = stats?.serverRequests 
-    ? Object.entries(stats.serverRequests).map(([ip, count], index) => ({
-        title: 'Number of Requests',
-        value: count.toLocaleString(),
-        change: ip,
-        icon: ServerIcon,
-        ...serverColors[index % serverColors.length]
-      }))
-    : [];
-
-  const metrics = [...baseMetrics, ...serverMetrics];
-  
-  // Determine grid columns based on number of metrics
-  const totalMetrics = metrics.length;
-  const gridCols = totalMetrics <= 3 
-    ? 'grid-cols-1 md:grid-cols-3' 
-    : totalMetrics <= 6 
-      ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
-      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6';
-  
-  return <div className={`grid ${gridCols} gap-4`}>
-      {metrics.map((metric, index) => <div key={`${metric.change}-${index}`} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
+    color: (stats?.liveTraffic ?? 0) <= 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500',
+    textColor: (stats?.liveTraffic ?? 0) <= 0 ? 'text-red-100' : 'text-emerald-100',
+    badge: 'LIVE',
+    isLiveTraffic: true
+  }, {
+    title: 'Number of Requests',
+    value: stats?.serverRequests['172.25.37.16'].toLocaleString() || '0',
+    change: '172.25.37.16',
+    icon: ServerIcon,
+    color: 'bg-cyan-500',
+    textColor: 'text-cyan-100'
+  }, {
+    title: 'Number of Requests',
+    value: stats?.serverRequests['172.25.37.21'].toLocaleString() || '0',
+    change: '172.25.37.21',
+    icon: ServerIcon,
+    color: 'bg-purple-500',
+    textColor: 'text-purple-100'
+  }, {
+    title: 'Number of Requests',
+    value: stats?.serverRequests['172.25.37.138'].toLocaleString() || '0',
+    change: '172.25.37.138',
+    icon: ServerIcon,
+    color: 'bg-indigo-500',
+    textColor: 'text-indigo-100'
+  }];;
+  return <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {metrics.map((metric, index) => <div key={index} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
           {metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
               {metric.badge}
             </div>}
@@ -294,10 +316,14 @@ export function MetricCards() {
               <p className={`text-xs ${metric.textColor} mb-1`}>
                 {metric.title}
               </p>
-              <p className="text-2xl font-bold mb-0.5">{metric.value}</p>
+              <p className="text-2xl font-bold mb-0.5">
+                {metric.isLiveTraffic
+                  ? metric.value.toString()
+                  : metric.value}
+              </p>
               <p className={`text-xs ${metric.textColor}`}>{metric.change}</p>
             </div>
           </div>
-        </div>)}
+        </div>)};
     </div>;
 }
