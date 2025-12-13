@@ -87,6 +87,12 @@ export function ResponseTypeChart() {
         }
       } catch (error) {
         console.error('Error fetching response type data:', error);
+        // Clear data when backend connection fails
+        setData([
+          { name: 'Information', value: 0 },
+          { name: 'Warning', value: 0 },
+          { name: 'Error', value: 0 }
+        ]);
       }
     };
 

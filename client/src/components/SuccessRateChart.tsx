@@ -64,6 +64,8 @@ export function SuccessRateChart() {
         }
       } catch (error) {
         console.error('Error fetching success rate data:', error);
+        // Clear data when backend connection fails
+        setData([]);
       }
     };
 

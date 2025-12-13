@@ -65,6 +65,8 @@ export function LiveTrafficChart() {
         }
       } catch (error) {
         console.error('Error fetching live traffic data:', error);
+        // Clear data when backend connection fails
+        setData([]);
       }
     };
 

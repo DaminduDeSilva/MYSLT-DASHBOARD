@@ -217,6 +217,8 @@ export function MetricCards() {
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
+        // Clear data when backend connection fails
+        setStats(null);
       } finally {
         setLoading(false);
       }
@@ -245,7 +247,18 @@ export function MetricCards() {
     return <div className="text-white">Loading...</div>;
   }
 
-  const metrics = [{
+  // Define colors for server cards (cycle through these)
+  const serverColors = [
+    { color: 'bg-cyan-500', textColor: 'text-cyan-100' },
+    { color: 'bg-purple-500', textColor: 'text-purple-100' },
+    { color: 'bg-indigo-500', textColor: 'text-indigo-100' },
+    { color: 'bg-pink-500', textColor: 'text-pink-100' },
+    { color: 'bg-rose-500', textColor: 'text-rose-100' },
+    { color: 'bg-orange-500', textColor: 'text-orange-100' },
+  ];
+
+  // Base metrics (always shown)
+  const baseMetrics = [{
     title: 'Total Active Customers',
     value: stats?.totalActiveCustomers.toString() || '0',
     change: '+12% from last hour',
