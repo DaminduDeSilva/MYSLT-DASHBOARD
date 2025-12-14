@@ -91,7 +91,7 @@ export function AdminPanel() {
       alert('Adding server... This may take a few seconds while fetching SNMP data.');
       
       // Call SNMP API to add server with real data
-      const response = await fetch('http://localhost:5000/api/server-health/snmp/add', {
+      const response = await fetch('/api/server-health/snmp/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -125,7 +125,7 @@ export function AdminPanel() {
 
     try {
       // Call backend API to delete server
-      const response = await fetch(`http://localhost:5000/api/server-health/${ip}`, {
+      const response = await fetch(`/api/server-health/${ip}`, {
         method: 'DELETE'
       });
 
