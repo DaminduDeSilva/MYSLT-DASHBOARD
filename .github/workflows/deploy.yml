@@ -37,23 +37,16 @@ jobs:
           npm ci --silent
           echo "✅ Frontend: $(npm list --depth=0 | wc -l) packages installed"
 
-      - name: Build Frontend
+      - name: Test Frontend Build
         run: |
-          echo "🏗️ Building frontend..."
+          echo "🏗️ Testing frontend build..."
           cd client
           npm run build
           
           echo "🔍 Build output:"
           ls -la dist/
           du -sh dist/
-          echo "✅ Build successful!"
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: client/dist/
-          retention-days: 7
+          echo "✅ Build test successful!"
 
   deploy:
     name: Deploy to Production
@@ -62,19 +55,6 @@ jobs:
     if: github.ref == 'refs/heads/main'  # Only deploy from main branch
     
     steps:
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend-build
-
-      - name: Verify Build Files
-        run: |
-          echo "🔍 Verifying build artifacts..."
-          [ -d frontend-build ] && echo "✅ Build directory exists" || exit 1
-          [ -f frontend-build/index.html ] && echo "✅ index.html exists" || exit 1
-          echo "✅ All build files verified"
-
       - name: Deploy to Server
         uses: appleboy/ssh-action@v0.1.8
         with:
@@ -117,11 +97,16 @@ jobs:
             cd Server
             npm install --production --silent
             
-            # 5. Copy pre-built frontend from GitHub Actions
-            echo "📦 Installing frontend build..."
-            rm -rf ../client/dist
-            mkdir -p ../client/dist
-            cp -r /home/runner/work/MYSLT-DASHBOARD/MYSLT-DASHBOARD/frontend-build/* ../client/dist/
+            # 5. Build frontend on server (GitHub Actions artifacts not accessible here)
+            echo "📦 Building frontend..."
+            cd ../client
+            npm install --silent
+            npm run build
+            
+            # Set proper permissions for Nginx
+            sudo chown -R nginx:nginx dist/
+            sudo chmod -R 755 dist/
+            sudo chcon -Rt httpd_sys_content_t dist/
             
             # 6. Restart backend with PM2
             echo "🔄 Restarting backend service..."
