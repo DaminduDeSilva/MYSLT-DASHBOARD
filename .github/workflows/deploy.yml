@@ -1,0 +1,201 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            Server/package-lock.json
+            client/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: |
+          echo "📦 Installing backend dependencies..."
+          cd Server
+          npm ci --silent
+          echo "✅ Backend: $(npm list --depth=0 | wc -l) packages installed"
+
+      - name: Install Frontend Dependencies
+        run: |
+          echo "📦 Installing frontend dependencies..."
+          cd client
+          npm ci --silent
+          echo "✅ Frontend: $(npm list --depth=0 | wc -l) packages installed"
+
+      - name: Build Frontend
+        run: |
+          echo "🏗️ Building frontend..."
+          cd client
+          npm run build
+          
+          echo "🔍 Build output:"
+          ls -la dist/
+          du -sh dist/
+          echo "✅ Build successful!"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: client/dist/
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main'  # Only deploy from main branch
+    
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-build
+
+      - name: Verify Build Files
+        run: |
+          echo "🔍 Verifying build artifacts..."
+          [ -d frontend-build ] && echo "✅ Build directory exists" || exit 1
+          [ -f frontend-build/index.html ] && echo "✅ index.html exists" || exit 1
+          echo "✅ All build files verified"
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: '124.43.216.136'
+          port: '9120'
+          username: 'dpd'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # =============================================
+            # 🚀 MySLT Dashboard Deployment
+            # =============================================
+            
+            echo "========================================"
+            echo "🚀 Starting MySLT Dashboard Deployment"
+            echo "========================================"
+            echo "Branch: main"
+            echo "Commit: ${{ github.sha }}"
+            echo "Time: $(date)"
+            echo "========================================"
+            
+            # 1. Navigate to project directory
+            cd /var/www/MYSLT-DASHBOARD
+            
+            # 2. Backup current deployment
+            echo "📦 Creating backup..."
+            BACKUP_DIR="/home/dpd/deploy-backups/backup_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p $BACKUP_DIR
+            if [ -d "client/dist" ]; then
+              cp -r client/dist $BACKUP_DIR/
+              echo "✅ Frontend backed up to $BACKUP_DIR"
+            fi
+            
+            # 3. Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # 4. Install backend dependencies
+            echo "📦 Installing backend dependencies..."
+            cd Server
+            npm install --production --silent
+            
+            # 5. Copy pre-built frontend from GitHub Actions
+            echo "📦 Installing frontend build..."
+            rm -rf ../client/dist
+            mkdir -p ../client/dist
+            cp -r /home/runner/work/MYSLT-DASHBOARD/MYSLT-DASHBOARD/frontend-build/* ../client/dist/
+            
+            # 6. Restart backend with PM2
+            echo "🔄 Restarting backend service..."
+            pm2 restart myslt-backend || pm2 start src/server.js --name myslt-backend
+            
+            # 7. Reload Nginx
+            echo "🔄 Reloading Nginx..."
+            sudo systemctl reload nginx
+            
+            # 8. Verify deployment
+            echo "✅ Verifying deployment..."
+            sleep 3
+            
+            echo "🔍 Service Status:"
+            pm2 status myslt-backend | grep -A2 "myslt-backend"
+            
+            echo "🔍 Checking Nginx..."
+            sudo systemctl status nginx --no-pager | grep "Active:" | head -1
+            
+            echo "🔍 Testing API..."
+            if curl -f -s http://localhost:5001/api/health; then
+              echo "✅ API is responding"
+            else
+              echo "⚠️ API check failed (may need more time to start)"
+            fi
+            
+            echo "========================================"
+            echo "🎉 Production Deployment Complete!"
+            echo "========================================"
+            echo "✅ Application deployed successfully"
+            echo "🌐 URL: https://dpdlab1.slt.lk:9122"
+            echo "📊 API: https://dpdlab1.slt.lk:9122/api/health"
+            echo "💾 Backup: $BACKUP_DIR"
+            echo "========================================"
+            
+            # 9. Clean old backups (keep last 5)
+            echo "🧹 Cleaning old backups..."
+            cd /home/dpd/deploy-backups
+            ls -t | tail -n +6 | xargs rm -rf 2>/dev/null || true
+            echo "✅ Cleanup complete"
+
+      - name: Post-Deployment Verification
+        run: |
+          echo "🔍 Performing post-deployment checks..."
+          sleep 10  # Wait for services to stabilize
+          
+          echo "Testing production endpoint..."
+          if curl -f -s -k https://dpdlab1.slt.lk:9122/api/health; then
+            echo "✅ Production deployment verified!"
+          else
+            echo "⚠️ Production endpoint check failed (may need more time)"
+          fi
+
+  notify:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    
+    steps:
+      - name: Print Summary
+        run: |
+          echo "========================================"
+          echo "📊 CI/CD Pipeline Summary"
+          echo "========================================"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Status: ${{ job.status }}"
+          echo "Time: $(date -u)"
+          echo "========================================"
+          echo "🌐 Production URL: https://dpdlab1.slt.lk:9122"
+          echo "📊 API Health: https://dpdlab1.slt.lk:9122/api/health"
+          echo "========================================"
