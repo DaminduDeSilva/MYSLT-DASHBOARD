@@ -97,9 +97,16 @@ jobs:
             cd Server
             npm install --production --silent
             
-            # 5. Build frontend on server (GitHub Actions artifacts not accessible here)
+            # 5. Build frontend on server
             echo "📦 Building frontend..."
             cd ../client
+            
+            # Fix permissions before build
+            if [ -d "dist" ]; then
+              sudo chown -R dpd:dpd dist/
+              rm -rf dist/
+            fi
+            
             npm install --silent
             npm run build
             
@@ -127,7 +134,7 @@ jobs:
             sudo systemctl status nginx --no-pager | grep "Active:" | head -1
             
             echo "🔍 Testing API..."
-            if curl -f -s http://localhost:5001/api/health; then
+            if curl -f -s http://localhost:5001/health; then
               echo "✅ API is responding"
             else
               echo "⚠️ API check failed (may need more time to start)"
@@ -138,7 +145,7 @@ jobs:
             echo "========================================"
             echo "✅ Application deployed successfully"
             echo "🌐 URL: https://dpdlab1.slt.lk:9122"
-            echo "📊 API: https://dpdlab1.slt.lk:9122/api/health"
+            echo "📊 API: https://dpdlab1.slt.lk:9122/api/server-health"
             echo "💾 Backup: $BACKUP_DIR"
             echo "========================================"
             
@@ -154,7 +161,7 @@ jobs:
           sleep 10  # Wait for services to stabilize
           
           echo "Testing production endpoint..."
-          if curl -f -s -k https://dpdlab1.slt.lk:9122/api/health; then
+          if curl -f -s -k https://dpdlab1.slt.lk:9122/api/server-health/; then
             echo "✅ Production deployment verified!"
           else
             echo "⚠️ Production endpoint check failed (may need more time)"
@@ -182,5 +189,5 @@ jobs:
           echo "Time: $(date -u)"
           echo "========================================"
           echo "🌐 Production URL: https://dpdlab1.slt.lk:9122"
-          echo "📊 API Health: https://dpdlab1.slt.lk:9122/api/health"
+          echo "📊 API Health: https://dpdlab1.slt.lk:9122/api/server-health"
           echo "========================================"
