@@ -133,15 +133,10 @@ export function MetricCards() {
 
   const metrics = [...baseMetrics, ...serverMetrics];
   
-  // Determine grid columns based on number of metrics
-  const totalMetrics = metrics.length;
-  const gridCols = totalMetrics <= 3 
-    ? 'grid-cols-1 md:grid-cols-3' 
-    : totalMetrics <= 6 
-      ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
-      : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6';
-  
-  return <div className={`grid ${gridCols} gap-4`}>
+  // Use CSS Grid auto-fit to create flexible columns that adapt to content
+  return <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4" style={{
+    gridTemplateColumns: `repeat(${Math.min(metrics.length, 6)}, minmax(0, 1fr))`
+  }}>
       {metrics.map((metric, index) => <div key={`${metric.change}-${index}`} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
           {'badge' in metric && metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
               {metric.badge}
