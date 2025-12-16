@@ -113,9 +113,9 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+       { /*<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
           Export
-        </button>
+        </button>*/}
         <button className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-700 transition-colors">
           <Bell size={20} />
         </button>
