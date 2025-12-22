@@ -40,10 +40,11 @@ const OIDS = {
     diskUsed: '1.3.6.1.2.1.25.2.3.1.6.4',
   },
   
-  // Network (IF-MIB - Standard, works on both)
-  ifInOctets: '1.3.6.1.2.1.2.2.1.10.2',
-  ifOutOctets: '1.3.6.1.2.1.2.2.1.16.2',
-  ifDescr: '1.3.6.1.2.1.2.2.1.2.2',
+  // Network (IF-MIB - Standard, works on both) - Dynamic interface detection
+  ifInOctets: '1.3.6.1.2.1.2.2.1.10',      // Base OID, append interface index
+  ifOutOctets: '1.3.6.1.2.1.2.2.1.16',     // Base OID, append interface index
+  ifDescr: '1.3.6.1.2.1.2.2.1.2',          // Base OID, append interface index
+  ifOperStatus: '1.3.6.1.2.1.2.2.1.8',     // Interface operational status
 };
 
 /**
@@ -105,6 +106,93 @@ const getMultipleOids = (session, oids) => {
 };
 
 /**
+ * Find the most active network interface
+ */
+const findActiveNetworkInterface = async (session) => {
+  let bestInterface = 2; // Default fallback
+  let maxTraffic = 0;
+  
+  try {
+    // Check interfaces 1-20 to find the most active one
+    for (let i = 1; i <= 20; i++) {
+      try {
+        const inOctets = await getSingleOid(session, `${OIDS.ifInOctets}.${i}`);
+        const outOctets = await getSingleOid(session, `${OIDS.ifOutOctets}.${i}`);
+        const operStatus = await getSingleOid(session, `${OIDS.ifOperStatus}.${i}`);
+        
+        // Only consider interfaces that are up (operStatus = 1)
+        if (parseInt(operStatus) === 1) {
+          const totalTraffic = parseInt(inOctets || 0) + parseInt(outOctets || 0);
+          
+          if (totalTraffic > maxTraffic) {
+            maxTraffic = totalTraffic;
+            bestInterface = i;
+            
+            // Get interface description for logging
+            try {
+              const ifDescr = await getSingleOid(session, `${OIDS.ifDescr}.${i}`);
+              console.log(`🌐 Found active interface ${i}: ${ifDescr.toString()} (${(totalTraffic / (1024 * 1024)).toFixed(2)} MB)`);
+            } catch (error) {
+              console.log(`🌐 Found active interface ${i}: Unknown name (${(totalTraffic / (1024 * 1024)).toFixed(2)} MB)`);
+            }
+          }
+        }
+      } catch (error) {
+        // Interface doesn't exist or error - continue
+      }
+    }
+  } catch (error) {
+    console.warn(`⚠️ Error finding active network interface: ${error.message}`);
+  }
+  
+  console.log(`🎯 Using network interface ${bestInterface} for monitoring`);
+  return bestInterface;
+};
+
+/**
+ * Get average CPU usage from multiple cores (Windows)
+ */
+const getWindowsCpuAverage = async (session) => {
+  let totalCpu = 0;
+  let cpuCount = 0;
+  
+  try {
+    // Try up to 16 CPU cores
+    for (let i = 1; i <= 16; i++) {
+      try {
+        const cpuLoad = await getSingleOid(session, `1.3.6.1.2.1.25.3.3.1.2.${i}`);
+        const cpuValue = parseInt(cpuLoad || 0);
+        
+        if (cpuValue >= 0) {
+          totalCpu += cpuValue;
+          cpuCount++;
+          console.log(`🖥️ CPU Core ${i}: ${cpuValue}%`);
+        }
+      } catch (error) {
+        // CPU core doesn't exist - stop checking
+        break;
+      }
+    }
+    
+    if (cpuCount > 0) {
+      const avgCpu = Math.round(totalCpu / cpuCount);
+      console.log(`🎯 Average CPU across ${cpuCount} cores: ${avgCpu}%`);
+      return avgCpu;
+    }
+  } catch (error) {
+    console.warn(`⚠️ Error getting Windows CPU average: ${error.message}`);
+  }
+  
+  // Fallback to single CPU
+  try {
+    const singleCpu = await getSingleOid(session, OIDS.windows.cpuLoad);
+    return parseInt(singleCpu || 0);
+  } catch (error) {
+    return 0;
+  }
+};
+
+/**
  * Format uptime from timeticks to readable string
  */
 const formatUptime = (timeticks) => {
@@ -137,32 +225,37 @@ export const getServerMetrics = async (host, community = 'public', osType = null
     
     if (osType === 'windows') {
       // ===== WINDOWS METRICS =====
+      console.log(`🪟 Getting Windows metrics for ${host}...`);
+      
+      // Get CPU average from multiple cores
+      cpuUtilization = await getWindowsCpuAverage(session);
+      
+      // Find the most active network interface
+      const activeInterface = await findActiveNetworkInterface(session);
+      
       const oidList = [
         OIDS.sysUpTime,
-        OIDS.windows.cpuLoad,
         OIDS.windows.memUnitSize,
         OIDS.windows.memTotalUnits,
         OIDS.windows.memUsedUnits,
         OIDS.windows.diskUnits,
         OIDS.windows.diskSize,
         OIDS.windows.diskUsed,
-        OIDS.ifInOctets,
-        OIDS.ifOutOctets,
+        `${OIDS.ifInOctets}.${activeInterface}`,
+        `${OIDS.ifOutOctets}.${activeInterface}`,
       ];
       
       results = await getMultipleOids(session, oidList);
       
       console.log(`📊 Windows SNMP data for ${host}:`, {
-        cpuLoad: results[OIDS.windows.cpuLoad],
+        cpuUtilization: cpuUtilization + '%',
         memUnitSize: results[OIDS.windows.memUnitSize],
         memTotal: results[OIDS.windows.memTotalUnits],
         memUsed: results[OIDS.windows.memUsedUnits],
         diskSize: results[OIDS.windows.diskSize],
         diskUsed: results[OIDS.windows.diskUsed],
+        networkInterface: activeInterface,
       });
-      
-      // CPU (directly gives percentage)
-      cpuUtilization = parseInt(results[OIDS.windows.cpuLoad]) || 0;
       
       // RAM calculation
       const memUnitSize = parseInt(results[OIDS.windows.memUnitSize]) || 1024;
@@ -176,8 +269,19 @@ export const getServerMetrics = async (host, community = 'public', osType = null
       const diskUsed = parseInt(results[OIDS.windows.diskUsed]) || 0;
       diskSpace = Math.max(0, Math.min(100, (diskUsed / diskTotal) * 100));
       
+      // Network traffic (use the active interface)
+      const bytesIn = parseInt(results[`${OIDS.ifInOctets}.${activeInterface}`]) || 0;
+      const bytesOut = parseInt(results[`${OIDS.ifOutOctets}.${activeInterface}`]) || 0;
+      const totalBytes = bytesIn + bytesOut;
+      networkTraffic = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+      
     } else {
       // ===== LINUX METRICS =====
+      console.log(`🐧 Getting Linux metrics for ${host}...`);
+      
+      // Find the most active network interface
+      const activeInterface = await findActiveNetworkInterface(session);
+      
       const oidList = [
         OIDS.sysUpTime,
         OIDS.linux.cpuIdle,
@@ -188,8 +292,8 @@ export const getServerMetrics = async (host, community = 'public', osType = null
         OIDS.linux.memBuffer,
         OIDS.linux.memCached,
         OIDS.linux.dskPercent,
-        OIDS.ifInOctets,
-        OIDS.ifOutOctets,
+        `${OIDS.ifInOctets}.${activeInterface}`,
+        `${OIDS.ifOutOctets}.${activeInterface}`,
       ];
       
       results = await getMultipleOids(session, oidList);
@@ -199,6 +303,7 @@ export const getServerMetrics = async (host, community = 'public', osType = null
         memTotal: results[OIDS.linux.memTotalReal],
         memAvail: results[OIDS.linux.memAvailReal],
         diskPercent: results[OIDS.linux.dskPercent],
+        networkInterface: activeInterface,
       });
       
       // CPU (100 - idle)
@@ -215,13 +320,13 @@ export const getServerMetrics = async (host, community = 'public', osType = null
       
       // Disk percentage
       diskSpace = parseInt(results[OIDS.linux.dskPercent]) || 0;
+      
+      // Network traffic (use the active interface)
+      const bytesIn = parseInt(results[`${OIDS.ifInOctets}.${activeInterface}`]) || 0;
+      const bytesOut = parseInt(results[`${OIDS.ifOutOctets}.${activeInterface}`]) || 0;
+      const totalBytes = bytesIn + bytesOut;
+      networkTraffic = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
     }
-    
-    // Network (common for both)
-    const bytesIn = parseInt(results[OIDS.ifInOctets]) || 0;
-    const bytesOut = parseInt(results[OIDS.ifOutOctets]) || 0;
-    const totalBytes = bytesIn + bytesOut;
-    networkTraffic = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
     
     // Uptime (common for both)
     uptime = formatUptime(parseInt(results[OIDS.sysUpTime]) || 0);
