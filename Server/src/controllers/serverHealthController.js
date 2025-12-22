@@ -144,6 +144,7 @@ export const getServerMetricsSNMP = async (req, res) => {
       success: true,
       data: {
         serverIp: ip,
+        osType: result.osType,  // Include OS type from SNMP detection
         ...result.metrics
       }
     });
