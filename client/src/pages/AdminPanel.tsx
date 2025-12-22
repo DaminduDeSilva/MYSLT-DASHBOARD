@@ -57,7 +57,7 @@ export function AdminPanel() {
       if (response.success && response.data) {
         const transformedServers = response.data.map((server: any) => ({
           ip: server.serverIp,
-          os: server.serverIp.startsWith('192.168') ? 'linux' : 'windows' as 'windows' | 'linux',
+          os: server.osType || 'linux' as 'windows' | 'linux',  // Use actual osType from API
           cpu: server.cpuUtilization,
           ram: server.ramUsage,
           disk: server.diskSpace,

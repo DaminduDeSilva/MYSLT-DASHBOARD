@@ -32,7 +32,7 @@ export function SystemHealth() {
           uptime: server.uptime,
           networkTraffic: server.networkTraffic || 0,
           networkData: [20, 35, 28, 40, 32, 50, 45, 38, 42, 55, 48, 35], // Placeholder for chart
-          os: server.serverIp.startsWith('192.168') ? 'linux' : 'windows' as 'windows' | 'linux'
+          os: server.osType || 'linux' as 'windows' | 'linux'  // Use actual osType from API
         }));
         setServers(transformedServers);
       }
