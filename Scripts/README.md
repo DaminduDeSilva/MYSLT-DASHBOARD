@@ -1,72 +1,143 @@
 # MySLT Dashboard Log Agents 🚀
 
-This directory contains universal agents and installers to forward logs from **any** remote server to the MySLT Dashboard.
+Universal agents and installers to forward logs from **any** remote server to the MySLT Dashboard.
+
+> [!TIP]
+> For complete implementation details, troubleshooting, and architecture overview, see **[MULTI_SERVER_LOG_MONITORING.md](../MULTI_SERVER_LOG_MONITORING.md)**
 
 ## 📁 Core Files
-- `install-agent.sh`: **Universal Installer** for Linux.
-- `log-agent.sh`: The core log-watcher agent.
-- `simulate-logs.sh`: Optional simulator to generate mock logs for testing.
-- `log-agent.ps1`: Agent for Windows servers.
+- `install-agent.sh` - **Universal Installer** for Linux
+- `log-agent.sh` - Linux log-watcher agent
+- `simulate-logs.sh` - Mock log generator (for testing)
+- `log-agent.ps1` - Windows agent
 
 ---
 
-## � How to Transfer to Remote Server
+## 🚀 Quick Start (Linux)
 
-Choose the easiest method for your environment:
+### 1. Transfer Scripts to Remote Server
 
-### Method A: SCP (Easiest for one-off)
-Run this from **your main dashboard server**:
+**Using SCP** (from dashboard server):
 ```bash
-# scp -P [PORT] -r [SOURCE] [USER]@[IP]:[DESTINATION]
-scp -P {PORT} -r /var/www/MYSLT-DASHBOARD/Scripts dpd@[REMOTE_IP]:/home/dpd/
+scp -P 3501 -r /var/www/MYSLT-DASHBOARD/Scripts dpd@[REMOTE_IP]:/home/dpd/
 ```
-*Note: Use uppercase `-P` for the port in SCP.*
 
-### Method B: Git (Best for updates)
-If the remote server has access to GitHub, just clone the repo:
+**Using Git** (on remote server):
 ```bash
-git clone https://github.com/DaminduDeSilva/MYSLT-DASHBOARD.git
+git clone https://github.com/Omindu1015/MYSLT-DASHBOARD.git
 cd MYSLT-DASHBOARD/Scripts
 ```
 
----
+### 2. Install Agent
 
-## �🛠️ Linux Setup (Quick Start)
-
-The `install-agent.sh` script handles everything: dependency checks, script installation, and service configuration.
-
-### 1. Basic Installation
-To watch a specific log file and use the server's hostname as the identifier:
 ```bash
+cd /home/dpd/Scripts
+chmod +x install-agent.sh
+
+# With simulator (for testing)
+sudo ./install-agent.sh --with-simulator
+
+# For real log file
 sudo ./install-agent.sh --path "/var/log/myapp.log"
 ```
 
-### 2. Installation with Simulator (For Testing)
-If you don't have a log file yet and want to see the dashboard in action:
+### 3. Configure Server Identifier
+
+> [!IMPORTANT]
+> **Use IP address, not hostname!**
+
 ```bash
-sudo ./install-agent.sh --with-simulator
+sudo nano /etc/systemd/system/log-agent.service
 ```
 
-### 3. Custom Configuration
+Update this line:
+```ini
+Environment="SERVER_ID=192.168.100.113"
+```
+
+Then reload:
 ```bash
-sudo ./install-agent.sh \
-  --url "https://YOUR_DASHBOARD_IP:9122/api/logs/ingest" \
-  --id "PROD_BACKEND_01" \
-  --path "/var/www/logs/api.log"
+sudo systemctl daemon-reload
+sudo systemctl restart log-agent
+```
+
+### 4. Verify
+
+```bash
+# Check status
+sudo systemctl status log-agent
+
+# Watch for success messages
+sudo journalctl -u log-agent -f
+# Should see: ✅ Sent X lines.
 ```
 
 ---
 
-## 📊 Management
-Once installed, the agents run as systemd services:
+## 📊 Management Commands
 
-- **Check Status**: `sudo systemctl status log-agent`
-- **Stop Simulator**: `sudo systemctl stop log-simulator`
-- **View Agent Logs**: `journalctl -u log-agent -f`
+| Command | Purpose |
+|---------|---------|
+| `sudo systemctl status log-agent` | Check agent status |
+| `sudo systemctl stop log-simulator` | Stop simulator |
+| `sudo journalctl -u log-agent -f` | Watch agent logs live |
+| `sudo systemctl restart log-agent` | Restart agent |
 
 ---
 
 ## 🛡️ Resource Safety
-- **Agent**: Only wakes up when the log file changes. Extremely efficient.
-- **Simulator**: Generates one line every 10 seconds (~430KB/day). Safe for production testing.
-- **Network**: Logs are batched (default: 10 lines) before being sent, minimizing HTTPS requests.
+
+- **Agent**: Only active when log file changes (~1-2% CPU)
+- **Simulator**: 1 log every 10 seconds (~430KB/day, negligible CPU)
+- **Network**: Logs batched (default 50 lines) before sending
+
+---
+
+## 🔧 Troubleshooting
+
+### Agent not sending?
+```bash
+# Check logs for errors
+sudo journalctl -u log-agent -n 50
+
+# Verify SERVER_ID is IP address
+sudo systemctl cat log-agent | grep SERVER_ID
+
+# Test connectivity
+curl -X POST http://192.168.100.137:5001/api/logs/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"serverIdentifier":"TEST","logs":["test"]}'
+```
+
+### Dashboard not showing data?
+1. Verify SERVER_ID uses IP format (not hostname)
+2. Check firewall: `sudo firewall-cmd --list-ports | grep 5001`
+3. Restart backend: `pm2 restart myslt-backend`
+
+**For detailed troubleshooting**, see [MULTI_SERVER_LOG_MONITORING.md](../MULTI_SERVER_LOG_MONITORING.md#-quick-troubleshooting)
+
+---
+
+## 📚 Advanced Configuration
+
+### Custom Batch Size
+```bash
+sudo systemctl edit log-agent
+```
+Add:
+```ini
+[Service]
+Environment="BATCH_SIZE=10"
+```
+
+### Custom Dashboard URL
+```bash
+sudo ./install-agent.sh \
+  --url "http://YOUR_IP:5001/api/logs/ingest" \
+  --id "192.168.100.113" \
+  --path "/var/log/app.log"
+```
+
+---
+
+**For complete documentation**: [MULTI_SERVER_LOG_MONITORING.md](../MULTI_SERVER_LOG_MONITORING.md)
