@@ -48,6 +48,7 @@ export const dashboardApi = {
     apiNumber?: string;
     dateFrom?: string;
     dateTo?: string;
+    serverIdentifier?: string;
   }) => {
     const params = new URLSearchParams();
     if (filters) {
@@ -62,6 +63,7 @@ export const dashboardApi = {
   getSuccessRates: async (filters?: {
     dateFrom?: string;
     dateTo?: string;
+    serverIdentifier?: string;
   }) => {
     const params = new URLSearchParams();
     if (filters) {
@@ -73,8 +75,8 @@ export const dashboardApi = {
     return apiRequest(`/dashboard/success-rates${queryString ? `?${queryString}` : ''}`);
   },
 
-  getLiveTraffic: async (minutes: number = 30) => {
-    return apiRequest(`/dashboard/live-traffic?minutes=${minutes}`);
+  getLiveTraffic: async (minutes: number = 30, serverIdentifier?: string) => {
+    return apiRequest(`/dashboard/live-traffic?minutes=${minutes}${serverIdentifier ? `&serverIdentifier=${serverIdentifier}` : ''}`);
   },
 
   getApiDetails: async (filters?: {
@@ -83,6 +85,7 @@ export const dashboardApi = {
     apiNumber?: string;
     dateFrom?: string;
     dateTo?: string;
+    serverIdentifier?: string;
   }) => {
     const params = new URLSearchParams();
     if (filters) {

@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import dashboardRoutes from './routes/dashboard.js';
 import serverHealthRoutes from './routes/serverHealth.js';
+import logIngestionRoutes from './routes/logIngestion.js';
 import { startSNMPMonitor } from './utils/snmpMonitor.js';
 
 // Load environment variables
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/server-health', serverHealthRoutes);
+app.use('/api/logs', logIngestionRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -88,7 +88,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { ClockIcon, Filter, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { dashboardApi } from '../services/api';
 
 interface ApiItem {
@@ -105,6 +105,7 @@ interface FilterValues {
   startTime: string;
   endTime: string;
   autoRefresh: string;
+  serverIdentifier: string;
 }
 
 // Store active filters globally
@@ -116,7 +117,8 @@ let activeFilters: FilterValues = {
   endDate: '',
   startTime: '',
   endTime: '',
-  autoRefresh: '30s'
+  autoRefresh: '30s',
+  serverIdentifier: ''
 };
 
 export function getActiveFilters() {
@@ -134,8 +136,10 @@ export function FilterSection() {
     endDate: '',
     startTime: '',
     endTime: '',
-    autoRefresh: '30s'
+    autoRefresh: '30s',
+    serverIdentifier: ''
   });
+  const [serverList, setServerList] = useState<any[]>([]);
 
   // Check if any filters are active
   const hasActiveFilters = () => {
@@ -146,18 +150,31 @@ export function FilterSection() {
   };
 
   useEffect(() => {
-    // Fetch API list from backend
-    const fetchApiList = async () => {
+    const fetchInitialData = async () => {
       try {
-        const response = await dashboardApi.getApiList();
-        if (response.success) {
-          setApiList(response.data);
+        const [apiResponse, serverResponse] = await Promise.all([
+          dashboardApi.getApiList(),
+          dashboardApi.getStats() // To get server requests/identities or serverHealthApi
+        ]);
+        
+        if (apiResponse.success) {
+          setApiList(apiResponse.data);
+        }
+
+        // Fetch servers from ServerHealth (using dashboardApi.getStats data or direct call)
+        // For simplicity, let's use the dashboard stats which has serverRequests keys
+        if (serverResponse.success) {
+          const servers = Object.keys(serverResponse.data.serverRequests).map(ip => ({
+            id: ip,
+            name: ip
+          }));
+          setServerList(servers);
         }
       } catch (error) {
-        console.error('Error fetching API list:', error);
+        console.error('Error fetching initial filter data:', error);
       }
     };
-    fetchApiList();
+    fetchInitialData();
   }, []);
 
   const handleFilterChange = (field: string, value: string) => {
@@ -212,6 +229,10 @@ export function FilterSection() {
       apiFilters.dateFrom = dateFrom.toISOString();
     }
     
+    if (filters.serverIdentifier) {
+      apiFilters.serverIdentifier = filters.serverIdentifier;
+    }
+    
     if (filters.endDate) {
       const dateTo = new Date(filters.endDate);
       if (filters.endTime) {
@@ -243,7 +264,8 @@ export function FilterSection() {
       endDate: '',
       startTime: '',
       endTime: '',
-      autoRefresh: '30s'
+      autoRefresh: '30s',
+      serverIdentifier: ''
     };
     setFilters(defaultFilters);
     activeFilters = { ...defaultFilters };
@@ -264,7 +286,8 @@ export function FilterSection() {
       endDate: '',
       startTime: '',
       endTime: '',
-      autoRefresh: '30s'
+      autoRefresh: '30s',
+      serverIdentifier: ''
     };
     setFilters(defaultFilters);
     activeFilters = { ...defaultFilters };
@@ -365,6 +388,21 @@ export function FilterSection() {
                   <option value="1m">Every 1m</option>
                   <option value="5m">Every 5m</option>
                   <option value="off">Off</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Dashboard Server</label>
+                <select 
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-bold text-blue-600"
+                  value={filters.serverIdentifier}
+                  onChange={(e) => handleFilterChange('serverIdentifier', e.target.value)}
+                >
+                  <option value="">All Servers</option>
+                  {serverList.map((server) => (
+                    <option key={server.id} value={server.id}>
+                      {server.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

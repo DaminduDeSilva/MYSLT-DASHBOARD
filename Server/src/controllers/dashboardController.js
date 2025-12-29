@@ -121,12 +121,16 @@ export const getDashboardStats = async (req, res) => {
  */
 export const getApiResponseTimes = async (req, res) => {
   try {
-    const { apiNumber, dateFrom, dateTo } = req.query;
+    const { apiNumber, dateFrom, dateTo, serverIdentifier } = req.query;
 
     const filter = {};
     
     if (apiNumber && apiNumber !== 'ALL') {
       filter.apiNumber = apiNumber;
+    }
+
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
     }
     
     if (dateFrom || dateTo) {
@@ -178,9 +182,13 @@ export const getApiResponseTimes = async (req, res) => {
  */
 export const getApiSuccessRates = async (req, res) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, serverIdentifier } = req.query;
 
     const filter = {};
+    
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
+    }
     
     if (dateFrom || dateTo) {
       filter.date = {};
@@ -238,14 +246,20 @@ export const getApiSuccessRates = async (req, res) => {
  */
 export const getLiveTraffic = async (req, res) => {
   try {
-    const { minutes = 30 } = req.query;
+    const { minutes = 30, serverIdentifier } = req.query;
     const timeAgo = new Date(Date.now() - minutes * 60000);
+
+    const filter = {
+      date: { $gte: timeAgo }
+    };
+
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
+    }
 
     const trafficData = await ApiLog.aggregate([
       {
-        $match: {
-          date: { $gte: timeAgo }
-        }
+        $match: filter
       },
       {
         $group: {
@@ -283,12 +297,16 @@ export const getLiveTraffic = async (req, res) => {
  */
 export const getApiDetails = async (req, res) => {
   try {
-    const { page = 1, limit = 10, apiNumber, dateFrom, dateTo } = req.query;
+    const { page = 1, limit = 10, apiNumber, dateFrom, dateTo, serverIdentifier } = req.query;
 
     const filter = {};
     
     if (apiNumber && apiNumber !== 'ALL') {
       filter.apiNumber = apiNumber;
+    }
+
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
     }
     
     if (dateFrom || dateTo) {
