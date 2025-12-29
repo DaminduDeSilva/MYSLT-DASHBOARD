@@ -58,7 +58,8 @@ jobs:
       - name: Deploy to Server
         uses: appleboy/ssh-action@v0.1.8
         with:
-          host: '124.43.216.136'
+          # host: '124.43.216.136' # Old IP (DNS dpdlab1.slt.lk currently down)
+          host: '124.43.216.137' # New IP
           port: '9120'
           username: 'dpd'
           key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -144,8 +145,10 @@ jobs:
             echo "🎉 Production Deployment Complete!"
             echo "========================================"
             echo "✅ Application deployed successfully"
-            echo "🌐 URL: https://dpdlab1.slt.lk:9122"
-            echo "📊 API: https://dpdlab1.slt.lk:9122/api/server-health"
+            # echo "🌐 URL: https://dpdlab1.slt.lk:9122"
+            # echo "📊 API: https://dpdlab1.slt.lk:9122/api/server-health"
+            echo "🌐 URL: https://124.43.216.137:9122"
+            echo "📊 API: https://124.43.216.137:9122/api/server-health"
             echo "💾 Backup: $BACKUP_DIR"
             echo "========================================"
             
@@ -161,7 +164,8 @@ jobs:
           sleep 10  # Wait for services to stabilize
           
           echo "Testing production endpoint..."
-          if curl -f -s -k https://dpdlab1.slt.lk:9122/api/server-health/; then
+          # if curl -f -s -k https://dpdlab1.slt.lk:9122/api/server-health/; then
+          if curl -f -s -k https://124.43.216.137:9122/api/server-health/; then
             echo "✅ Production deployment verified!"
           else
             echo "⚠️ Production endpoint check failed (may need more time)"
@@ -188,6 +192,8 @@ jobs:
           echo "Status: ${{ job.status }}"
           echo "Time: $(date -u)"
           echo "========================================"
-          echo "🌐 Production URL: https://dpdlab1.slt.lk:9122"
-          echo "📊 API Health: https://dpdlab1.slt.lk:9122/api/server-health"
+          # echo "🌐 Production URL: https://dpdlab1.slt.lk:9122"
+          # echo "📊 API Health: https://dpdlab1.slt.lk:9122/api/server-health"
+          echo "🌐 Production URL: https://124.43.216.137:9122"
+          echo "📊 API Health: https://124.43.216.137:9122/api/server-health"
           echo "========================================"
