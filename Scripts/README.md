@@ -60,5 +60,22 @@ $env:LOG_FILE_PATH="C:\Logs\app.log"
 .\log-agent.ps1
 ```
 
-### 2. Run as a Scheduled Task
-To run in the background, set up a Windows Scheduled Task to trigger "At startup" or "At logon" running `powershell.exe -ExecutionPolicy Bypass -File C:\Path\To\log-agent.ps1`.
+## 🧪 Log Simulator (For Testing)
+
+The `simulate-logs.sh` script generates mock log entries to help test the pipeline on servers that don't have active applications.
+
+### 1. Usage
+```bash
+# ./simulate-logs.sh [log_file_path] [interval_seconds]
+./simulate-logs.sh ./filtered-log.txt 10
+```
+
+### 2. Resource Safety 🛡️
+The simulator is designed to be extremely lightweight:
+- **Default Interval**: 10 seconds (Approx 6 logs/minute).
+- **Disk Impact**: ~430 KB per day.
+- **CPU/RAM**: Negligible (uses standard sleep and echo).
+- **Batching**: The log-agent will batch these logs, so it only sends data to the dashboard once every ~100 seconds (if batch size is 10).
+
+> [!TIP]
+> To stop the simulation, simply run `sudo systemctl stop log-simulator` (if installed as a service).
