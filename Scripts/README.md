@@ -17,13 +17,15 @@ Choose the easiest method for your environment:
 ### Method A: SCP (Easiest for one-off)
 Run this from **your main dashboard server**:
 ```bash
-scp -r /var/www/MYSLT-DASHBOARD/Scripts dpd@[REMOTE_IP]:/home/dpd/
+# scp -P [PORT] -r [SOURCE] [USER]@[IP]:[DESTINATION]
+scp -P {PORT} -r /var/www/MYSLT-DASHBOARD/Scripts dpd@[REMOTE_IP]:/home/dpd/
 ```
+*Note: Use uppercase `-P` for the port in SCP.*
 
 ### Method B: Git (Best for updates)
 If the remote server has access to GitHub, just clone the repo:
 ```bash
-git clone https://github.com/Omindu1015/MYSLT-DASHBOARD.git
+git clone https://github.com/DaminduDeSilva/MYSLT-DASHBOARD.git
 cd MYSLT-DASHBOARD/Scripts
 ```
 
