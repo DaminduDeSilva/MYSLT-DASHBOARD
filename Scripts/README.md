@@ -10,7 +10,26 @@ This directory contains universal agents and installers to forward logs from **a
 
 ---
 
-## 🛠️ Linux Setup (Quick Start)
+## � How to Transfer to Remote Server
+
+Choose the easiest method for your environment:
+
+### Method A: SCP (Easiest for one-off)
+Run this from **your main dashboard server**:
+```bash
+scp -r /var/www/MYSLT-DASHBOARD/Scripts dpd@[REMOTE_IP]:/home/dpd/
+```
+
+### Method B: Git (Best for updates)
+If the remote server has access to GitHub, just clone the repo:
+```bash
+git clone https://github.com/Omindu1015/MYSLT-DASHBOARD.git
+cd MYSLT-DASHBOARD/Scripts
+```
+
+---
+
+## �🛠️ Linux Setup (Quick Start)
 
 The `install-agent.sh` script handles everything: dependency checks, script installation, and service configuration.
 
