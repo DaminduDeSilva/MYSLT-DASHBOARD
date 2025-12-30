@@ -34,8 +34,10 @@ const parseLogLine = (line, remoteServerId) => {
 export const ingestLogs = async (req, res) => {
   try {
     const { serverIdentifier, logs } = req.body;
+    console.log(`[INGEST] Request from ${serverIdentifier}, logs count: ${logs?.length}`);
 
     if (!logs || !Array.isArray(logs)) {
+      console.warn(`[INGEST] Invalid logs format from ${serverIdentifier}`);
       return res.status(400).json({
         success: false,
         message: 'Invalid logs format. Expected an array of log lines.'
@@ -52,6 +54,8 @@ export const ingestLogs = async (req, res) => {
     const parsedLogs = logs
       .map(line => parseLogLine(line, serverIdentifier))
       .filter(log => log !== null);
+
+    console.log(`[INGEST] Parsed ${parsedLogs.length} valid logs from ${serverIdentifier}`);
 
     if (parsedLogs.length === 0) {
       return res.json({

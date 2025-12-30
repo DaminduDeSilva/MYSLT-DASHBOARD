@@ -256,6 +256,27 @@ sudo nano /etc/systemd/system/log-agent.service
 sudo systemctl edit log-agent
 ```
 
+### Issue 6: Windows PowerShell Syntax/Encoding Errors
+**Problem**: `install-agent.ps1` failing with `TerminatorExpectedAtEndOfString` or missing quote errors.
+
+**Root Cause**: PowerShell parser issues caused by non-ASCII characters (emojis) or complex nested quoting in certain Windows environments/encodings.
+
+**Solution**: 
+- Replaced all emojis and decorative lines with plain ASCII text.
+- Simplified string formatting to avoid complex interpolation.
+- Ensured all scripts use standard UTF-8 without BOM or plain ASCII.
+
+---
+
+### Issue 7: Windows File Locking ("Process cannot access the file")
+**Problem**: Simulator fails to write to the log file because the Agent is reading it.
+
+**Root Cause**: Standard PowerShell `Add-Content` creates a write lock that conflicts with the Agent's read access.
+
+**Solution**:
+- Updated `simulate-logs.ps1` to use .NET `FileStream` with explicit `[System.IO.FileShare]::ReadWrite` permissions.
+- This allows multiple processes to read and write to the same log file simultaneously without conflict.
+
 ---
 
 ## 🚀 Setup Guide
