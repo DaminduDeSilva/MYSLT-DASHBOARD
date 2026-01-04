@@ -13,6 +13,9 @@ export function AccessMethodChart() {
   const [data, setData] = useState<AccessMethod[]>([]);
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let currentRefresh = '30s';
+
     const fetchData = async (filters?: any) => {
       try {
         const response = await dashboardApi.getStats(filters);
@@ -32,19 +35,41 @@ export function AccessMethodChart() {
       }
     };
 
+    const setupInterval = (refresh: string) => {
+      if (intervalId) clearInterval(intervalId);
+      
+      if (refresh === 'off' || refresh === 'Off') {
+        intervalId = null;
+      } else {
+        const ms = refresh === '30s' ? 30000 : refresh === '1m' ? 60000 : refresh === '5m' ? 300000 : 30000;
+        intervalId = setInterval(() => fetchData(), ms);
+      }
+    };
+
     fetchData();
-    const interval = setInterval(() => fetchData(), 30000);
+    setupInterval(currentRefresh);
     
     const handleFilterChange = (event: any) => {
       const filters = event.detail || {};
       console.log('AccessMethodChart applying filters:', filters);
       fetchData(filters);
     };
+    
+    const handleAutoRefreshChange = (event: any) => {
+      const { autoRefresh } = event.detail || {};
+      if (autoRefresh) {
+        currentRefresh = autoRefresh;
+        setupInterval(autoRefresh);
+      }
+    };
+    
     window.addEventListener('filtersChanged', handleFilterChange);
+    window.addEventListener('autoRefreshChanged', handleAutoRefreshChange);
 
     return () => {
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
       window.removeEventListener('filtersChanged', handleFilterChange);
+      window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
     };
   }, []);
 

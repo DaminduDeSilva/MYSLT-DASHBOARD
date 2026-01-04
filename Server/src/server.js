@@ -7,6 +7,7 @@ import connectDB from './config/database.js';
 import dashboardRoutes from './routes/dashboard.js';
 import serverHealthRoutes from './routes/serverHealth.js';
 import logIngestionRoutes from './routes/logIngestion.js';
+import authRoutes from './routes/auth.js';
 import { startSNMPMonitor } from './utils/snmpMonitor.js';
 
 // Load environment variables
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/server-health', serverHealthRoutes);
 app.use('/api/logs', logIngestionRoutes);

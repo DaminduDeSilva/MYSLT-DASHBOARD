@@ -88,12 +88,22 @@
 
 
 import { useState, useEffect } from 'react';
-import { Filter, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, RefreshCw, X, Search } from 'lucide-react';
 import { dashboardApi } from '../services/api';
 
 interface ApiItem {
   number: string;
   name: string;
+}
+
+interface CustomerLog {
+  startTimestamp: string;
+  accessMethod: string;
+  status: string;
+  apiNumber: string;
+  endTimestamp: string;
+  responseTime: number;
+  serverIdentifier: string;
 }
 
 interface FilterValues {
@@ -140,6 +150,9 @@ export function FilterSection() {
     serverIdentifier: ''
   });
   const [serverList, setServerList] = useState<any[]>([]);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerLogs, setCustomerLogs] = useState<CustomerLog[]>([]);
+  const [loadingCustomerData, setLoadingCustomerData] = useState(false);
 
   // Check if any filters are active
   const hasActiveFilters = () => {
@@ -175,6 +188,11 @@ export function FilterSection() {
       }
     };
     fetchInitialData();
+    
+    // Dispatch initial autoRefresh setting
+    window.dispatchEvent(new CustomEvent('autoRefreshChanged', { 
+      detail: { autoRefresh: '30s' } 
+    }));
   }, []);
 
   const handleFilterChange = (field: string, value: string) => {
@@ -198,6 +216,13 @@ export function FilterSection() {
         } else if (!value) {
           updated.apiNumber = 'ALL';
         }
+      }
+      
+      // Dispatch autoRefresh change immediately
+      if (field === 'autoRefresh') {
+        window.dispatchEvent(new CustomEvent('autoRefreshChanged', { 
+          detail: { autoRefresh: value } 
+        }));
       }
       
       return updated;
@@ -303,6 +328,24 @@ export function FilterSection() {
     }));
   };
 
+  const handleViewCustomer = async () => {
+    if (!filters.customerNumber) return;
+    
+    setLoadingCustomerData(true);
+    setShowCustomerModal(true);
+    
+    try {
+      const response = await dashboardApi.getCustomerLogs(filters.customerNumber);
+      if (response.success) {
+        setCustomerLogs(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching customer logs:', error);
+    } finally {
+      setLoadingCustomerData(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filter Toggle Button */}
@@ -335,8 +378,8 @@ export function FilterSection() {
       {isOpen && (
         <div className="bg-slate-800 rounded-xl p-6 shadow-lg animate-slideDown">
           <div className="space-y-4">
-            {/* First Row - API, Customer, and Auto Refresh */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* First Row - Main Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">API Number</label>
                 <select 
@@ -367,15 +410,25 @@ export function FilterSection() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Customer Email</label>
-                <input
-                  type="text"
-                  placeholder="Enter customer email"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900"
-                  value={filters.customerNumber}
-                  onChange={(e) => handleFilterChange('customerNumber', e.target.value)}
-                />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-white mb-2">Customer Username</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter username (email/phone)"
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900"
+                    value={filters.customerNumber}
+                    onChange={(e) => handleFilterChange('customerNumber', e.target.value)}
+                  />
+                  <button 
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    onClick={handleViewCustomer}
+                    disabled={!filters.customerNumber}
+                    title="View customer details"
+                  >
+                    View
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Auto Refresh</label>
@@ -393,7 +446,7 @@ export function FilterSection() {
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Dashboard Server</label>
                 <select 
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-bold text-blue-600"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900"
                   value={filters.serverIdentifier}
                   onChange={(e) => handleFilterChange('serverIdentifier', e.target.value)}
                 >
@@ -408,7 +461,7 @@ export function FilterSection() {
             </div>
 
             {/* Second Row - Date/Time Range and Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Start Date</label>
                 <input
@@ -447,22 +500,137 @@ export function FilterSection() {
                   placeholder="HH:MM"
                 />
               </div>
-              <div className="flex items-end gap-2">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2 opacity-0">Apply</label>
                 <button 
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-1 text-sm"
+                  className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
                   onClick={handleApplyFilters}
                 >
-                  <span>🔍</span>
+                  <Search size={18} />
                   Apply
                 </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white mb-2 opacity-0">Clear</label>
                 <button 
-                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm"
+                  className="w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
                   onClick={handleClearFilters}
                   title="Clear all filters"
                 >
                   Clear
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Details Modal */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+              <h2 className="text-2xl font-bold text-white">
+                Customer Details: {filters.customerNumber}
+              </h2>
+              <button 
+                onClick={() => setShowCustomerModal(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingCustomerData ? (
+                <div className="text-center py-12 text-slate-400">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  Loading customer logs...
+                </div>
+              ) : customerLogs.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  No logs found for this customer.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-slate-700 rounded-lg p-4">
+                      <div className="text-slate-400 text-sm">Total Requests</div>
+                      <div className="text-2xl font-bold text-white">{customerLogs.length}</div>
+                    </div>
+                    <div className="bg-slate-700 rounded-lg p-4">
+                      <div className="text-slate-400 text-sm">Success Rate</div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {Math.round((customerLogs.filter(log => log.status === 'Information').length / customerLogs.length) * 100)}%
+                      </div>
+                    </div>
+                    <div className="bg-slate-700 rounded-lg p-4">
+                      <div className="text-slate-400 text-sm">Avg Response Time</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {Math.round(customerLogs.reduce((sum, log) => sum + log.responseTime, 0) / customerLogs.length)}ms
+                      </div>
+                    </div>
+                    <div className="bg-slate-700 rounded-lg p-4">
+                      <div className="text-slate-400 text-sm">Unique APIs</div>
+                      <div className="text-2xl font-bold text-purple-400">
+                        {new Set(customerLogs.map(log => log.apiNumber)).size}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logs Table */}
+                  <div className="bg-slate-700 rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-slate-600">
+                          <tr>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">Timestamp</th>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">API Number</th>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">Access Method</th>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">Status</th>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">Response Time</th>
+                            <th className="text-left py-3 px-4 text-slate-300 font-medium">Server</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {customerLogs.map((log, index) => (
+                            <tr key={index} className="border-t border-slate-600 hover:bg-slate-600/50 transition-colors">
+                              <td className="py-3 px-4 text-slate-300">{log.startTimestamp}</td>
+                              <td className="py-3 px-4 text-slate-300">{log.apiNumber}</td>
+                              <td className="py-3 px-4 text-slate-300">{log.accessMethod}</td>
+                              <td className="py-3 px-4">
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                  log.status === 'Information' ? 'bg-green-500/20 text-green-400' :
+                                  log.status === 'Warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  log.status === 'Error' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-purple-500/20 text-purple-400'
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-slate-300">{log.responseTime}ms</td>
+                              <td className="py-3 px-4 text-slate-300">{log.serverIdentifier}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-slate-700 flex justify-end">
+              <button 
+                onClick={() => setShowCustomerModal(false)}
+                className="px-6 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

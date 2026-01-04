@@ -81,6 +81,7 @@
  
 import { useEffect, useState } from 'react';
 import { dashboardApi } from '../services/api';
+import { TrendingUp, TrendingDown, List } from 'lucide-react';
 
 interface ApiData {
   apiId: string;
@@ -91,15 +92,34 @@ interface ApiData {
   requestCount: number;
 }
 
+type FilterMode = 'all' | 'success' | 'error';
+
 export function ApiDetailsTable() {
   const [apiData, setApiData] = useState<ApiData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let currentRefresh = '30s';
+
     const fetchData = async (filters?: any) => {
       try {
-        const combinedFilters = { limit: 20, ...filters };
-        const response = await dashboardApi.getApiDetails(combinedFilters);
+        let response;
+        const combinedFilters = { ...filters };
+        
+        if (filterMode === 'success') {
+          // Fetch top 20 APIs with highest success rate
+          response = await dashboardApi.getTopSuccessApis(combinedFilters);
+        } else if (filterMode === 'error') {
+          // Fetch top 20 APIs with highest error rate
+          response = await dashboardApi.getTopErrorApis(combinedFilters);
+        } else {
+          // Default: fetch all APIs (limit 20)
+          combinedFilters.limit = 20;
+          response = await dashboardApi.getApiDetails(combinedFilters);
+        }
+        
         if (response.success && response.data) {
           setApiData(response.data);
         }
@@ -110,21 +130,43 @@ export function ApiDetailsTable() {
       }
     };
 
+    const setupInterval = (refresh: string) => {
+      if (intervalId) clearInterval(intervalId);
+      
+      if (refresh === 'off' || refresh === 'Off') {
+        intervalId = null;
+      } else {
+        const ms = refresh === '30s' ? 30000 : refresh === '1m' ? 60000 : refresh === '5m' ? 300000 : 30000;
+        intervalId = setInterval(() => fetchData(), ms);
+      }
+    };
+
     fetchData();
-    const interval = setInterval(() => fetchData(), 30000);
+    setupInterval(currentRefresh);
     
     const handleFilterChange = (event: any) => {
       const filters = event.detail || {};
       console.log('ApiDetailsTable applying filters:', filters);
       fetchData(filters);
     };
+    
+    const handleAutoRefreshChange = (event: any) => {
+      const { autoRefresh } = event.detail || {};
+      if (autoRefresh) {
+        currentRefresh = autoRefresh;
+        setupInterval(autoRefresh);
+      }
+    };
+    
     window.addEventListener('filtersChanged', handleFilterChange);
+    window.addEventListener('autoRefreshChanged', handleAutoRefreshChange);
 
     return () => {
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
       window.removeEventListener('filtersChanged', handleFilterChange);
+      window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
     };
-  }, []);
+  }, [filterMode]);
 
   if (loading) {
     return (
@@ -135,7 +177,47 @@ export function ApiDetailsTable() {
     );
   }
   return <div className="bg-slate-800 rounded-xl p-6">
-      <h3 className="text-lg font-bold text-white mb-4">API Details</h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-white">API Details</h3>
+        
+        {/* Filter Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilterMode('all')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterMode === 'all' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            <List size={18} />
+            All APIs
+          </button>
+          <button
+            onClick={() => setFilterMode('success')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterMode === 'success' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            <TrendingUp size={18} />
+            Top Success
+          </button>
+          <button
+            onClick={() => setFilterMode('error')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterMode === 'error' 
+                ? 'bg-red-600 text-white' 
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            <TrendingDown size={18} />
+            Top Errors
+          </button>
+        </div>
+      </div>
+      
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>

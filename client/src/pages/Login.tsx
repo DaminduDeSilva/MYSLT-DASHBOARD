@@ -1,34 +1,114 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../Logo/SLTMobitel_Logo.svg.png';
-import { LogIn, User, Lock, AlertCircle } from 'lucide-react';
+import { LogIn, User, Lock, AlertCircle, Mail, UserPlus } from 'lucide-react';
 
 export function Login() {
   const navigate = useNavigate();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simple authentication
-    if (username === 'admin' && password === '123456') {
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('userName', 'Admin');
-      
-      setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userName', data.data.user.fullName);
+        localStorage.setItem('authToken', data.data.token);
+        localStorage.setItem('userRole', data.data.user.role);
+        
+        setTimeout(() => {
+          setIsLoading(false);
+          navigate('/dashboard');
+        }, 800);
+      } else {
         setIsLoading(false);
-        navigate('/dashboard');
-      }, 800);
-    } else {
-      setTimeout(() => {
+        setError(data.message || 'Login failed');
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setError('Unable to connect to server');
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setIsLoading(true);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setIsLoading(false);
+      setError('Passwords do not match');
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setIsLoading(false);
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username, 
+          password, 
+          email, 
+          fullName,
+          role: 'admin' 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess('Registration successful! You can now login.');
         setIsLoading(false);
-        setError('Invalid username or password');
-      }, 800);
+        
+        // Clear form and switch to login mode after 2 seconds
+        setTimeout(() => {
+          setIsRegisterMode(false);
+          setUsername('');
+          setPassword('');
+          setEmail('');
+          setFullName('');
+          setConfirmPassword('');
+          setSuccess('');
+        }, 2000);
+      } else {
+        setIsLoading(false);
+        setError(data.message || 'Registration failed');
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setError('Unable to connect to server');
     }
   };
 
@@ -45,12 +125,12 @@ export function Login() {
         <div className="bg-slate-800 rounded-xl p-8 shadow-2xl border border-slate-700">
           <div className="flex items-center justify-center mb-6">
             <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <LogIn size={32} className="text-white" />
+              {isRegisterMode ? <UserPlus size={32} className="text-white" /> : <LogIn size={32} className="text-white" />}
             </div>
           </div>
 
           <h2 className="text-2xl font-bold text-white text-center mb-6">
-            Sign In
+            {isRegisterMode ? 'Create Admin Account' : 'Sign In'}
           </h2>
 
           {error && (
@@ -60,7 +140,34 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          {success && (
+            <div className="mb-4 p-4 bg-green-500/10 border border-green-500 rounded-lg flex items-center gap-3">
+              <AlertCircle size={20} className="text-green-400" />
+              <p className="text-green-400 text-sm">{success}</p>
+            </div>
+          )}
+
+          <form onSubmit={isRegisterMode ? handleRegister : handleLogin} className="space-y-5">
+            {/* Full Name Field (Register only) */}
+            {isRegisterMode && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Username Field */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -78,6 +185,26 @@ export function Login() {
                 />
               </div>
             </div>
+
+            {/* Email Field (Register only) */}
+            {isRegisterMode && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Password Field */}
             <div>
@@ -97,7 +224,27 @@ export function Login() {
               </div>
             </div>
 
-            {/* Login Button */}
+            {/* Confirm Password Field (Register only) */}
+            {isRegisterMode && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-700 text-white rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -106,25 +253,48 @@ export function Login() {
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Signing in...
+                  {isRegisterMode ? 'Creating account...' : 'Signing in...'}
                 </>
               ) : (
                 <>
-                  <LogIn size={20} />
-                  Sign In
+                  {isRegisterMode ? <UserPlus size={20} /> : <LogIn size={20} />}
+                  {isRegisterMode ? 'Create Account' : 'Sign In'}
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-            <p className="text-xs text-slate-400 text-center mb-2">Demo Credentials:</p>
-            <div className="text-xs text-slate-300 space-y-1">
-              <p className="text-center">Username: <span className="font-mono text-blue-400">admin</span></p>
-              <p className="text-center">Password: <span className="font-mono text-blue-400">123456</span></p>
-            </div>
+          {/* Toggle between Login and Register */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsRegisterMode(!isRegisterMode);
+                setError('');
+                setSuccess('');
+                setUsername('');
+                setPassword('');
+                setEmail('');
+                setFullName('');
+                setConfirmPassword('');
+              }}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+            >
+              {isRegisterMode 
+                ? 'Already have an account? Sign In' 
+                : "Don't have an account? Register"}
+            </button>
           </div>
+
+          {/* Demo Credentials (Login only) */}
+          {!isRegisterMode && (
+            <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+              <p className="text-xs text-slate-400 text-center mb-2">Demo Credentials:</p>
+              <div className="text-xs text-slate-300 space-y-1">
+                <p className="text-center">Username: <span className="font-mono text-blue-400">admin</span></p>
+                <p className="text-center">Password: <span className="font-mono text-blue-400">123456</span></p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
