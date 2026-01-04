@@ -100,6 +100,40 @@ export const dashboardApi = {
   getApiList: async () => {
     return apiRequest('/dashboard/api-list');
   },
+
+  getCustomerLogs: async (username: string) => {
+    return apiRequest(`/dashboard/customer-logs/${encodeURIComponent(username)}`);
+  },
+
+  getTopSuccessApis: async (filters?: {
+    dateFrom?: string;
+    dateTo?: string;
+    serverIdentifier?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, String(value));
+      });
+    }
+    const queryString = params.toString();
+    return apiRequest(`/dashboard/top-success-apis${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getTopErrorApis: async (filters?: {
+    dateFrom?: string;
+    dateTo?: string;
+    serverIdentifier?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, String(value));
+      });
+    }
+    const queryString = params.toString();
+    return apiRequest(`/dashboard/top-error-apis${queryString ? `?${queryString}` : ''}`);
+  },
 };
 
 // Server Health API

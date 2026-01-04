@@ -48,10 +48,38 @@ export function SystemHealth() {
     fetchServers();
   }, []);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh with configurable interval
   useEffect(() => {
-    const interval = setInterval(fetchServers, 30000);
-    return () => clearInterval(interval);
+    let intervalId: NodeJS.Timeout | null = null;
+    let currentRefresh = '30s';
+
+    const setupInterval = (refresh: string) => {
+      if (intervalId) clearInterval(intervalId);
+      
+      if (refresh === 'off' || refresh === 'Off') {
+        intervalId = null;
+      } else {
+        const ms = refresh === '30s' ? 30000 : refresh === '1m' ? 60000 : refresh === '5m' ? 300000 : 30000;
+        intervalId = setInterval(fetchServers, ms);
+      }
+    };
+
+    setupInterval(currentRefresh);
+
+    const handleAutoRefreshChange = (event: any) => {
+      const { autoRefresh } = event.detail || {};
+      if (autoRefresh) {
+        currentRefresh = autoRefresh;
+        setupInterval(autoRefresh);
+      }
+    };
+
+    window.addEventListener('autoRefreshChanged', handleAutoRefreshChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
+    };
   }, []);
 
   // Reload servers when changed in admin panel

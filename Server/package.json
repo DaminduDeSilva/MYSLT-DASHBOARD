@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "import-logs": "node src/utils/importLogs.js",
-    "generate-live": "node src/utils/generateLiveData.js"
+    "generate-live": "node src/utils/generateLiveData.js",
+    "seed-admin": "node seedAdmin.js"
   },
   "keywords": [
     "monitoring",

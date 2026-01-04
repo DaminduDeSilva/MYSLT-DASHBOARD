@@ -16,6 +16,7 @@ const apiLogSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true
+    // Can be email address or phone number (username)
   },
   status: {
     type: String,

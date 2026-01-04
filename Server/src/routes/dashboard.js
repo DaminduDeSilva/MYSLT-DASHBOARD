@@ -5,7 +5,10 @@ import {
   getApiSuccessRates,
   getLiveTraffic,
   getApiDetails,
-  getApiList
+  getApiList,
+  getCustomerLogs,
+  getTopSuccessApis,
+  getTopErrorApis
 } from '../controllers/dashboardController.js';
 
 const router = express.Router();
@@ -27,5 +30,14 @@ router.get('/api-details', getApiDetails);
 
 // Get API list for filters
 router.get('/api-list', getApiList);
+
+// Get customer logs by username
+router.get('/customer-logs/:username', getCustomerLogs);
+
+// Get top 20 APIs with highest success rate
+router.get('/top-success-apis', getTopSuccessApis);
+
+// Get top 20 APIs with highest error rate
+router.get('/top-error-apis', getTopErrorApis);
 
 export default router;

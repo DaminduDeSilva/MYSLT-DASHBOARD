@@ -44,6 +44,9 @@ export function MetricCards() {
   };
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let currentRefresh = '30s';
+
     const fetchStats = async (filters?: any) => {
       try {
         const response = await dashboardApi.getStats(filters);
@@ -62,7 +65,19 @@ export function MetricCards() {
       }
     };
 
+    const setupInterval = (refresh: string) => {
+      if (intervalId) clearInterval(intervalId);
+      
+      if (refresh === 'off' || refresh === 'Off') {
+        intervalId = null;
+      } else {
+        const ms = refresh === '30s' ? 30000 : refresh === '1m' ? 60000 : refresh === '5m' ? 300000 : 30000;
+        intervalId = setInterval(() => fetchStats(), ms);
+      }
+    };
+
     fetchStats();
+    setupInterval(currentRefresh);
 
     // Listen for filter changes
     const handleFilterChange = (event: any) => {
@@ -70,14 +85,22 @@ export function MetricCards() {
       console.log('MetricCards applying filters:', filters);
       fetchStats(filters);
     };
+    
+    const handleAutoRefreshChange = (event: any) => {
+      const { autoRefresh } = event.detail || {};
+      if (autoRefresh) {
+        currentRefresh = autoRefresh;
+        setupInterval(autoRefresh);
+      }
+    };
+    
     window.addEventListener('filtersChanged', handleFilterChange);
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => fetchStats(), 30000);
+    window.addEventListener('autoRefreshChanged', handleAutoRefreshChange);
 
     return () => {
+      if (intervalId) clearInterval(intervalId);
       window.removeEventListener('filtersChanged', handleFilterChange);
-      clearInterval(interval);
+      window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
     };
   }, []);
 

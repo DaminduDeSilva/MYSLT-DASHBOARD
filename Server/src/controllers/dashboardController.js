@@ -16,6 +16,7 @@ export const getDashboardStats = async (req, res) => {
       filter.apiNumber = apiNumber;
     }
     
+    // Support both email and phone number in customerEmail field (username)
     if (customerEmail) {
       filter.customerEmail = { $regex: customerEmail, $options: 'i' };
     }
@@ -382,6 +383,188 @@ export const getApiList = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching API list',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get customer logs by username (email or phone)
+ */
+export const getCustomerLogs = async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username is required'
+      });
+    }
+
+    // Search for logs matching the username (customerEmail field)
+    const logs = await ApiLog.find({
+      customerEmail: { $regex: username, $options: 'i' }
+    })
+      .sort({ date: -1 })
+      .limit(100)
+      .select('startTimestamp accessMethod status apiNumber endTimestamp responseTime serverIdentifier')
+      .lean();
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    console.error('Error in getCustomerLogs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching customer logs',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get top 20 APIs with highest success rate
+ */
+export const getTopSuccessApis = async (req, res) => {
+  try {
+    const { dateFrom, dateTo, serverIdentifier } = req.query;
+
+    const filter = {};
+    
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
+    }
+    
+    if (dateFrom || dateTo) {
+      filter.date = {};
+      if (dateFrom) filter.date.$gte = new Date(dateFrom);
+      if (dateTo) filter.date.$lte = new Date(dateTo);
+    }
+
+    const apiStats = await ApiLog.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: '$apiNumber',
+          total: { $sum: 1 },
+          successful: {
+            $sum: { $cond: [{ $eq: ['$status', 'Information'] }, 1, 0] }
+          },
+          avgResponseTime: { $avg: '$responseTime' }
+        }
+      },
+      {
+        $project: {
+          apiNumber: '$_id',
+          successRate: {
+            $multiply: [{ $divide: ['$successful', '$total'] }, 100]
+          },
+          avgResponseTime: 1,
+          requestCount: '$total'
+        }
+      },
+      { $sort: { successRate: -1 } },
+      { $limit: 20 }
+    ]);
+
+    const formattedData = apiStats.map(stat => ({
+      apiId: stat.apiNumber,
+      method: 'GET',
+      path: apiMapping[stat.apiNumber] || 'Unknown',
+      successRate: `${Math.round(stat.successRate)}%`,
+      avgResponse: `${Math.round(stat.avgResponseTime)}ms`,
+      requestCount: stat.requestCount
+    }));
+
+    res.json({
+      success: true,
+      data: formattedData
+    });
+  } catch (error) {
+    console.error('Error in getTopSuccessApis:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching top success APIs',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get top 20 APIs with highest error rate
+ */
+export const getTopErrorApis = async (req, res) => {
+  try {
+    const { dateFrom, dateTo, serverIdentifier } = req.query;
+
+    const filter = {};
+    
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
+    }
+    
+    if (dateFrom || dateTo) {
+      filter.date = {};
+      if (dateFrom) filter.date.$gte = new Date(dateFrom);
+      if (dateTo) filter.date.$lte = new Date(dateTo);
+    }
+
+    const apiStats = await ApiLog.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: '$apiNumber',
+          total: { $sum: 1 },
+          errors: {
+            $sum: { 
+              $cond: [
+                { $in: ['$status', ['Error', 'Critical', 'Warning']] }, 
+                1, 
+                0
+              ] 
+            }
+          },
+          avgResponseTime: { $avg: '$responseTime' }
+        }
+      },
+      {
+        $project: {
+          apiNumber: '$_id',
+          errorRate: {
+            $multiply: [{ $divide: ['$errors', '$total'] }, 100]
+          },
+          successRate: {
+            $multiply: [{ $divide: [{ $subtract: ['$total', '$errors'] }, '$total'] }, 100]
+          },
+          avgResponseTime: 1,
+          requestCount: '$total'
+        }
+      },
+      { $sort: { errorRate: -1 } },
+      { $limit: 20 }
+    ]);
+
+    const formattedData = apiStats.map(stat => ({
+      apiId: stat.apiNumber,
+      method: 'GET',
+      path: apiMapping[stat.apiNumber] || 'Unknown',
+      successRate: `${Math.round(stat.successRate)}%`,
+      avgResponse: `${Math.round(stat.avgResponseTime)}ms`,
+      requestCount: stat.requestCount
+    }));
+
+    res.json({
+      success: true,
+      data: formattedData
+    });
+  } catch (error) {
+    console.error('Error in getTopErrorApis:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching top error APIs',
       error: error.message
     });
   }
