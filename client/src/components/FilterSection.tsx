@@ -153,6 +153,9 @@ export function FilterSection() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [customerLogs, setCustomerLogs] = useState<CustomerLog[]>([]);
   const [loadingCustomerData, setLoadingCustomerData] = useState(false);
+  
+  // Check if user is authenticated
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
 
   // Check if any filters are active
   const hasActiveFilters = () => {
@@ -348,34 +351,36 @@ export function FilterSection() {
 
   return (
     <div className="space-y-4">
-      {/* Filter Toggle Button */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          <Filter size={20} />
-          <span>{isOpen ? 'Hide Filters' : 'Show Filters'}</span>
-          {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </button>
-        <button
-          onClick={handleRefreshData}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-          title="Refresh to main dataset"
-        >
-          <RefreshCw size={20} />
-          <span>Refresh Data</span>
-        </button>
-        {hasActiveFilters() && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded-lg text-sm">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Filters Active
-          </div>
-        )}
-      </div>
+      {/* Filter Toggle Button - Only show for authenticated users */}
+      {isAuthenticated && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Filter size={20} />
+            <span>{isOpen ? 'Hide Filters' : 'Show Filters'}</span>
+            {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+          <button
+            onClick={handleRefreshData}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            title="Refresh to main dataset"
+          >
+            <RefreshCw size={20} />
+            <span>Refresh Data</span>
+          </button>
+          {hasActiveFilters() && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500 text-green-400 rounded-lg text-sm">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              Filters Active
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Collapsible Filter Panel */}
-      {isOpen && (
+      {/* Collapsible Filter Panel - Only show for authenticated users */}
+      {isAuthenticated && isOpen && (
         <div className="bg-slate-800 rounded-xl p-6 shadow-lg animate-slideDown">
           <div className="space-y-4">
             {/* First Row - Main Filters */}
@@ -525,8 +530,8 @@ export function FilterSection() {
         </div>
       )}
 
-      {/* Customer Details Modal */}
-      {showCustomerModal && (
+      {/* Customer Details Modal - Only show for authenticated users */}
+      {isAuthenticated && showCustomerModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
