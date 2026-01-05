@@ -1,6 +1,6 @@
  
 import { ServerIcon, RefreshCwIcon, Monitor, Trash2 } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
 interface ServerCardProps {
   ip: string;
   cpu: number;
@@ -107,10 +107,13 @@ export function ServerCard({
             <span className="text-sm text-slate-400">Network Traffic</span>
             <span className="text-sm font-bold text-blue-400">{networkTraffic.toFixed(2)} MB</span>
           </div>
-          <div className="h-16">
+          <div className="h-24">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis hide />
+                <YAxis hide />
+                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
