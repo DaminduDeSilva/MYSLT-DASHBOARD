@@ -1,6 +1,6 @@
 
 import { UsersIcon, TrendingUpIcon, ActivityIcon, ServerIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import emailjs from 'emailjs-com';
 import { dashboardApi } from '../services/api';
 
@@ -14,32 +14,58 @@ interface DashboardStats {
 interface MetricCard {
   title: string;
   value: string;
+  numericValue: number;
   change: string;
   icon: any;
   color: string;
   textColor: string;
   badge?: string;
+  threshold?: number;
+  alertOnZero?: boolean;
+  serverIp?: string;
 }
 
 export function MetricCards() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const alertSentRef = useRef<Set<string>>(new Set());
 
-  const sendTrafficAlert = () => {
+  const sendAlert = (metricTitle: string, value: number, threshold?: number, serverIp?: string) => {
+    const alertKey = `${metricTitle}-${serverIp || 'main'}-${value === 0 ? 'zero' : 'exceeded'}`;
+    
+    // Prevent duplicate alerts
+    if (alertSentRef.current.has(alertKey)) {
+      return;
+    }
+
+    const subject = value === 0 
+      ? `ALERT: ${metricTitle} Dropped to 0${serverIp ? ` (${serverIp})` : ''}` 
+      : `ALERT: ${metricTitle} Exceeded Threshold${serverIp ? ` (${serverIp})` : ''}`;
+    
+    const message = value === 0
+      ? `${metricTitle}${serverIp ? ` for server ${serverIp}` : ''} is currently 0. Immediate attention required!`
+      : `${metricTitle}${serverIp ? ` for server ${serverIp}` : ''} has exceeded the threshold of ${threshold}. Current value: ${value}.`;
+
     emailjs.send(
       "service_22depjr",
       "template_wikzlfa",
       {
-        subject: "ALERT: Live Traffic Dropped to 0",
-        message: "Live Traffic value is currently 0. Immediate attention required!"
+        subject,
+        message
       },
       "BGYMrLhoFJo2n84_3"
     )
     .then(() => {
-      console.log("Traffic alert email sent!");
+      console.log(`Alert email sent for ${metricTitle}!`);
+      alertSentRef.current.add(alertKey);
+      
+      // Remove alert key after 5 minutes to allow re-sending if issue persists
+      setTimeout(() => {
+        alertSentRef.current.delete(alertKey);
+      }, 300000);
     })
     .catch((err) => {
-      console.log("Failed to send traffic alert", err);
+      console.log(`Failed to send alert for ${metricTitle}`, err);
     });
   };
 
@@ -52,9 +78,6 @@ export function MetricCards() {
         const response = await dashboardApi.getStats(filters);
         if (response.success && response.data) {
           setStats(response.data);
-          if (response.data.liveTraffic <= 0) {
-            sendTrafficAlert();
-          }
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -104,6 +127,45 @@ export function MetricCards() {
     };
   }, []);
 
+  // Check for alerts whenever stats change
+  useEffect(() => {
+    if (!stats) return;
+
+    // Check base metrics
+    if (stats.totalActiveCustomers === 0) {
+      sendAlert('Total Active Customers', 0);
+    }
+    if (stats.totalActiveCustomers > 5000) {
+      sendAlert('Total Active Customers', stats.totalActiveCustomers, 5000);
+    }
+
+    if (stats.totalTrafficCount === 0) {
+      sendAlert('Total Traffic Count', 0);
+    }
+    if (stats.totalTrafficCount > 500000) {
+      sendAlert('Total Traffic Count', stats.totalTrafficCount, 500000);
+    }
+
+    if (stats.liveTraffic === 0) {
+      sendAlert('Live Traffic', 0);
+    }
+    if (stats.liveTraffic > 200) {
+      sendAlert('Live Traffic', stats.liveTraffic, 200);
+    }
+
+    // Check server metrics
+    if (stats.serverRequests) {
+      Object.entries(stats.serverRequests).forEach(([ip, count]) => {
+        if (count === 0) {
+          sendAlert('Number of Requests', 0, undefined, ip);
+        }
+        if (count > 100000) {
+          sendAlert('Number of Requests', count, 100000, ip);
+        }
+      });
+    }
+  }, [stats]);
+
   if (loading) {
     return <div className="text-white">Loading...</div>;
   }
@@ -122,25 +184,34 @@ export function MetricCards() {
   const baseMetrics: MetricCard[] = [{
     title: 'Total Active Customers',
     value: stats?.totalActiveCustomers.toString() || '0',
+    numericValue: stats?.totalActiveCustomers || 0,
     change: '+12% from last hour',
     icon: UsersIcon,
     color: 'bg-blue-500',
-    textColor: 'text-blue-100'
+    textColor: 'text-blue-100',
+    threshold: 5000,
+    alertOnZero: true
   }, {
     title: 'Total Traffic Count',
     value: stats?.totalTrafficCount.toLocaleString() || '0',
+    numericValue: stats?.totalTrafficCount || 0,
     change: '+8% from yesterday',
     icon: TrendingUpIcon,
     color: 'bg-green-500',
-    textColor: 'text-green-100'
+    textColor: 'text-green-100',
+    threshold: 500000,
+    alertOnZero: true
   }, {
     title: 'Live Traffic',
     value: stats?.liveTraffic?.toString() || '0',
+    numericValue: stats?.liveTraffic || 0,
     change: 'Real-time monitoring',
     icon: ActivityIcon,
     color: 'bg-emerald-500',
     textColor: 'text-emerald-100',
-    badge: 'LIVE'
+    badge: 'LIVE',
+    threshold: 200,
+    alertOnZero: true
   }];
 
   // Dynamic server metrics (only show servers that have been added)
@@ -148,36 +219,66 @@ export function MetricCards() {
     ? Object.entries(stats.serverRequests).map(([ip, count], index) => ({
         title: 'Number of Requests',
         value: count.toLocaleString(),
+        numericValue: count,
         change: ip,
         icon: ServerIcon,
-        ...serverColors[index % serverColors.length]
+        ...serverColors[index % serverColors.length],
+        threshold: 100000,
+        alertOnZero: true,
+        serverIp: ip
       }))
     : [];
 
   const metrics = [...baseMetrics, ...serverMetrics];
+
+  const shouldBlink = (metric: MetricCard) => {
+    const isZero = metric.numericValue === 0 && metric.alertOnZero;
+    const isExceeded = metric.threshold && metric.numericValue > metric.threshold;
+    return isZero || isExceeded;
+  };
   
   // Use CSS Grid auto-fit to create flexible columns that adapt to content
-  return <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4" style={{
-    gridTemplateColumns: `repeat(${Math.min(metrics.length, 6)}, minmax(0, 1fr))`
-  }}>
-      {metrics.map((metric, index) => <div key={`${metric.change}-${index}`} className={`${metric.color} rounded-lg p-4 text-white relative overflow-hidden`}>
-          {'badge' in metric && metric.badge && <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
-              {metric.badge}
-            </div>}
-          <div className="space-y-2">
-            <div className="bg-white/20 p-2 rounded-lg w-fit">
-              <metric.icon size={15} />
-            </div>
-            <div>
-              <p className={`text-xs ${metric.textColor} mb-1`}>
-                {metric.title}
-              </p>
-              <p className="text-2xl font-bold mb-0.5">{metric.value}</p>
-              <p className={`text-xs ${metric.textColor}`}>{metric.change}</p>
+  return (
+    <>
+      <style>{`
+        @keyframes blink-red {
+          0%, 100% { background-color: rgb(239 68 68); }
+          50% { background-color: rgb(153 27 27); }
+        }
+        .blink-red-animation {
+          animation: blink-red 1s ease-in-out infinite;
+        }
+      `}</style>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4" style={{
+        gridTemplateColumns: `repeat(${Math.min(metrics.length, 6)}, minmax(0, 1fr))`
+      }}>
+        {metrics.map((metric, index) => (
+          <div 
+            key={`${metric.change}-${index}`} 
+            className={`${shouldBlink(metric) ? 'blink-red-animation' : metric.color} rounded-lg p-4 text-white relative overflow-hidden`}
+          >
+            {'badge' in metric && metric.badge && (
+              <div className="absolute top-2 right-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+                {metric.badge}
+              </div>
+            )}
+            <div className="space-y-2">
+              <div className="bg-white/20 p-2 rounded-lg w-fit">
+                <metric.icon size={15} />
+              </div>
+              <div>
+                <p className={`text-xs ${metric.textColor} mb-1`}>
+                  {metric.title}
+                </p>
+                <p className="text-2xl font-bold mb-0.5">{metric.value}</p>
+                <p className={`text-xs ${metric.textColor}`}>{metric.change}</p>
+              </div>
             </div>
           </div>
-        </div>)}
-    </div>;
+        ))}
+      </div>
+    </>
+  );
 }
 
 
