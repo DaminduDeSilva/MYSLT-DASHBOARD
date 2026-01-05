@@ -95,7 +95,7 @@ jobs:
             # 4. Install backend dependencies
             echo "📦 Installing backend dependencies..."
             cd Server
-            npm install --production --silent
+            npm install --production
             
             # 5. Build frontend on server
             echo "📦 Building frontend..."
@@ -107,7 +107,7 @@ jobs:
               rm -rf dist/
             fi
             
-            npm install --silent
+            npm install
             npm run build
             
             # Set proper permissions for Nginx
