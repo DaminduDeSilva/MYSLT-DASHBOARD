@@ -115,8 +115,8 @@ export function ApiDetailsTable() {
           // Fetch top 20 APIs with highest error rate
           response = await dashboardApi.getTopErrorApis(combinedFilters);
         } else {
-          // Default: fetch all APIs (limit 20)
-          combinedFilters.limit = 20;
+          // Default: fetch all APIs (no limit)
+          combinedFilters.limit = 1000; // High limit to get all APIs
           response = await dashboardApi.getApiDetails(combinedFilters);
         }
         
