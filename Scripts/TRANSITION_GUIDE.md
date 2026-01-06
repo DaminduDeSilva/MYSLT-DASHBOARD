@@ -30,7 +30,18 @@ scp Scripts/parsers.conf dpd@192.168.100.113:/tmp/ && \
 ssh dpd@192.168.100.113 "sudo mv /tmp/parsers.conf /etc/fluent-bit/parsers.conf"
 ```
 
-### 4. Start Fluent Bit
+### 4. Optional: Start Log Simulator
+If you want to generate test traffic, copy and run the simulator:
+```bash
+# Copy the simulator
+scp Scripts/simulate-logs.sh dpd@192.168.100.113:/tmp/ && \
+ssh dpd@192.168.100.113 "chmod +x /tmp/simulate-logs.sh && sudo mv /tmp/simulate-logs.sh /usr/local/bin/simulate-logs.sh"
+
+# Run it (manual)
+sudo /usr/local/bin/simulate-logs.sh
+```
+
+### 5. Start Fluent Bit
 ```bash
 sudo systemctl enable fluent-bit
 sudo systemctl start fluent-bit
@@ -58,7 +69,17 @@ scp Scripts/fluent-bit-windows.conf Administrator@192.168.100.114:C:\fluent-bit\
 scp Scripts/parsers.conf Administrator@192.168.100.114:C:\fluent-bit\etc\parsers.conf
 ```
 
-### 4. Start Fluent Bit (as a Service)
+### 4. Optional: Start Log Simulator
+If you want to generate test traffic, copy and run the simulator:
+```powershell
+# Copy the simulator
+scp Scripts/simulate-logs.ps1 Administrator@192.168.100.114:C:\fluent-bit\etc\simulate-logs.ps1
+
+# Run it (manual)
+powershell -ExecutionPolicy Bypass -File C:\fluent-bit\etc\simulate-logs.ps1 -LogFilePath "C:\Logs\test.log"
+```
+
+### 5. Start Fluent Bit (as a Service)
 ```powershell
 C:\fluent-bit\bin\fluent-bit.exe -c C:\fluent-bit\etc\fluent-bit.conf --install MySLT-Fluent-Bit
 Start-Service MySLT-Fluent-Bit
