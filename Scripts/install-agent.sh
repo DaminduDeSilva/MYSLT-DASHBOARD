@@ -5,7 +5,7 @@
 # ==============================================================
 
 # Default Configuration
-DASHBOARD_URL="http://124.43.216.137:5001/api/logs/ingest" # Update to your production URL
+DASHBOARD_URL="http://192.168.100.137:5001/api/logs/ingest" # Update to your production URL
 SERVER_ID=$(hostname)
 LOG_FILE_PATH="/var/www/MYSLT-DASHBOARD/Server/filtered-log.txt"
 INSTALL_DIR="/usr/local/bin"

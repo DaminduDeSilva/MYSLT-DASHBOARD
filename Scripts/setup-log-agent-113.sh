@@ -5,7 +5,7 @@
 # ==============================================================
 
 # Configuration
-DASHBOARD_URL="http://124.43.216.137:5001/api/logs/ingest"
+DASHBOARD_URL="http://192.168.100.137:5001/api/logs/ingest"
 SERVER_ID="LINUX_SRV_113"
 LOG_FILE_PATH="/var/www/MYSLT-DASHBOARD/Server/filtered-log.txt" 
 AGENT_PATH="/usr/local/bin/log-agent.sh"

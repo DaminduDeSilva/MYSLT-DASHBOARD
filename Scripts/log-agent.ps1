@@ -2,7 +2,7 @@
 # This script watches a log file and sends new lines to the Dashboard API.
 
 param(
-    [string]$DashboardUrl = ($env:DASHBOARD_URL -or "http://localhost:5000/api/logs/ingest"),
+    [string]$DashboardUrl = ($env:DASHBOARD_URL -or "http://192.168.100.137:5001/api/logs/ingest"),
     [string]$ServerId = ($env:SERVER_ID -or "WINDOWS_SERVER_01"),
     [string]$LogFilePath = ($env:LOG_FILE_PATH -or "C:\Logs\filtered-log.txt"),
     [int]$BatchSize = ($env:BATCH_SIZE -or 50),

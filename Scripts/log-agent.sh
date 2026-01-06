@@ -4,7 +4,7 @@
 # This script watches a log file and sends new lines to the Dashboard API.
 
 # Configuration (can be overridden by environment variables)
-DASHBOARD_URL=${DASHBOARD_URL:-"http://localhost:5000/api/logs/ingest"}
+DASHBOARD_URL=${DASHBOARD_URL:-"http://192.168.100.137:5001/api/logs/ingest"}
 SERVER_ID=${SERVER_ID:-"LINUX_SERVER"}
 LOG_FILE_PATH=${LOG_FILE_PATH:-"/var/www/MYSLT-DASHBOARD/Server/filtered-log.txt"}
 BATCH_SIZE=${BATCH_SIZE:-50}
@@ -28,19 +28,19 @@ log_buffer=()
 
 send_batch() {
     if [ ${#log_buffer[@]} -gt 0 ]; then
-        # Create JSON payload
-        # Convert array to JSON array of strings
+        # Create JSON payload securely using a temporary file or pipe
+        # to avoid "Argument list too long" errors
         json_logs=$(printf '%s\n' "${log_buffer[@]}" | jq -R . | jq -s .)
         
-        payload=$(cat <<EOF
+        # Send to API via stdin to handle large payloads
+        # We wrap the JSON creation in a way that avoids huge variables where possible
+        response=$(cat <<EOF | curl -s -X POST -H "Content-Type: application/json" -d @- "$DASHBOARD_URL"
 {
   "serverIdentifier": "$SERVER_ID",
   "logs": $json_logs
 }
 EOF
 )
-        # Send to API
-        response=$(curl -s -X POST -H "Content-Type: application/json" -d "$payload" "$DASHBOARD_URL")
         
         if [[ $response == *"success\":true"* ]]; then
             echo "✅ Sent ${#log_buffer[@]} lines."

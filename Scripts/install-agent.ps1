@@ -2,8 +2,8 @@
 # This script installs the log-agent.ps1 as a Windows Scheduled Task.
 
 param(
-    [string]$DashboardUrl = "http://124.43.216.137:5001/api/logs/ingest",
-    [string]$ServerId = $env:COMPUTERNAME,
+    [string]$DashboardUrl = "http://192.168.100.137:5001/api/logs/ingest",
+    [string]$ServerId = ((Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -like "192.168.100.*" }).IPAddress -or $env:COMPUTERNAME),
     [string]$LogFilePath = "C:\Logs\app.log",
     [string]$InstallDir = "C:\MySLT-Agent",
     [int]$BatchSize = 50,
@@ -61,7 +61,7 @@ $AgentAction = New-ScheduledTaskAction -Execute "PowerShell.exe" `
     -WorkingDirectory $InstallDir
 
 $Trigger = New-ScheduledTaskTrigger -AtStartup
-$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+$Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Hours 0)
 
 # Register Agent Task
 Unregister-ScheduledTask -TaskName $AgentTaskName -Confirm:$false -ErrorAction SilentlyContinue
