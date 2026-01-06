@@ -1,3 +1,4 @@
+import express from 'express';
 import { ingestLogs, ingestLogStream } from '../controllers/logController.js';
 
 const router = express.Router();

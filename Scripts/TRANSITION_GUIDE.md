@@ -37,8 +37,8 @@ If you want to generate test traffic, copy and run the simulator:
 scp Scripts/simulate-logs.sh dpd@192.168.100.113:/tmp/ && \
 ssh dpd@192.168.100.113 "chmod +x /tmp/simulate-logs.sh && sudo mv /tmp/simulate-logs.sh /usr/local/bin/simulate-logs.sh"
 
-# Run it (manual)
-sudo /usr/local/bin/simulate-logs.sh
+# Run it (manual) - Point to the file Fluent Bit is watching
+sudo /usr/local/bin/simulate-logs.sh /var/www/MYSLT-DASHBOARD/Server/filtered-log.txt
 ```
 
 ### 5. Start Fluent Bit
