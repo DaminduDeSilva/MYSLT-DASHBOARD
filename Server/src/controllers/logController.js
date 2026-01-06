@@ -82,3 +82,49 @@ export const ingestLogs = async (req, res) => {
     });
   }
 };
+/**
+ * Ingest logs as a stream (Optimized for Fluent Bit NDJSON)
+ */
+export const ingestLogStream = async (req, res) => {
+  try {
+    const serverIdentifier = req.headers['x-server-id'] || 'UNKNOWN_STREAM';
+    let count = 0;
+    const logsToInsert = [];
+
+    // Fluent Bit with Format json sends an array
+    if (Array.isArray(req.body)) {
+      count = req.body.length;
+      const parsedLogs = req.body.map(log => ({
+        ...log,
+        responseTime: parseInt(log.responseTime) || 0,
+        date: log.startTimestamp ? new Date(parseInt(log.startTimestamp)) : new Date(),
+        serverIdentifier: log.serverIdentifier || serverIdentifier
+      }));
+      if (parsedLogs.length > 0) {
+        await ApiLog.insertMany(parsedLogs, { ordered: false });
+      }
+    } else if (req.body.logs && Array.isArray(req.body.logs)) {
+      // Handle same format as ingestLogs but in this controller for consistency
+      const parsedLogs = req.body.logs
+        .map(line => parseLogLine(line, req.body.serverIdentifier))
+        .filter(log => log !== null);
+      count = parsedLogs.length;
+      if (count > 0) {
+        await ApiLog.insertMany(parsedLogs, { ordered: false });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully ingested ${count} logs via stream.`,
+      count
+    });
+  } catch (error) {
+    console.error('Error in ingestLogStream:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error ingesting stream logs',
+      error: error.message
+    });
+  }
+};
