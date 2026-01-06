@@ -83,9 +83,15 @@ powershell -ExecutionPolicy Bypass -File "C:\Program Files (x86)\fluent-bit\conf
 ```
 
 ### 5. Start Fluent Bit (as a Service)
-Open **Command Prompt as Administrator** and run:
+PowerShell can be tricky with quotes and parentheses. For this step, it is easiest to use a standard **Command Prompt (CMD)**.
+
+Open **Command Prompt (cmd.exe) as Administrator** and run:
+
 ```cmd
-"C:\Program Files (x86)\fluent-bit\bin\fluent-bit.exe" -c "C:\Program Files (x86)\fluent-bit\conf\fluent-bit.conf" --install MySLT-Fluent-Bit
+:: 1. Create the service (Spaces after = are REQUIRED)
+sc create MySLT-Fluent-Bit binPath= "\"C:\Program Files (x86)\fluent-bit\bin\fluent-bit.exe\" -c \"C:\Program Files (x86)\fluent-bit\conf\fluent-bit.conf\"" start= auto
+
+:: 2. Start the service
 net start MySLT-Fluent-Bit
 ```
 

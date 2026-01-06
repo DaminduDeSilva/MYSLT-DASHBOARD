@@ -88,6 +88,10 @@ export const ingestLogs = async (req, res) => {
 export const ingestLogStream = async (req, res) => {
   try {
     const serverIdentifier = req.headers['x-server-id'] || 'UNKNOWN_STREAM';
+    console.log(`[STREAM] Request from ${serverIdentifier}. logs count: ${Array.isArray(req.body) ? req.body.length : (req.body.logs ? req.body.logs.length : 'N/A')}`);
+    if (serverIdentifier === 'UNKNOWN_STREAM') {
+      console.log('[STREAM] Sample Body:', JSON.stringify(Array.isArray(req.body) ? req.body[0] : req.body, null, 2));
+    }
     let count = 0;
     const logsToInsert = [];
 
