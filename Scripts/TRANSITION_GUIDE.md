@@ -12,21 +12,24 @@ sudo systemctl stop log-agent
 sudo systemctl disable log-agent
 ```
 
-### 2. Install Fluent Bit (if not already done)
+### 2. Install & Prepare Folder
+Run this on **Server 113** to ensure the database folder exists with proper permissions:
 ```bash
-curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh
+sudo yum install fluent-bit -y
+sudo mkdir -p /var/lib/fluent-bit/
+sudo chmod 777 /var/lib/fluent-bit/
 ```
 
 ### 3. Deploy Configuration
-Run these commands from your **Dashboard Server** (137) to copy the files safely (via `/tmp` then `sudo mv`):
+Run these commands from your **Dashboard Server** (137) to copy the files safely:
 
 ```bash
-# 1. Copy and move the main config
-scp Scripts/fluent-bit-linux.conf dpd@192.168.100.113:/tmp/ && \
+# 1. Copy the main config
+scp Scripts/fluent-bit-linux.conf dpd@192.168.100.113:/tmp/
 ssh dpd@192.168.100.113 "sudo mv /tmp/fluent-bit-linux.conf /etc/fluent-bit/fluent-bit.conf"
 
-# 2. Copy and move the parsers config
-scp Scripts/parsers.conf dpd@192.168.100.113:/tmp/ && \
+# 2. Copy the parsers config
+scp Scripts/parsers.conf dpd@192.168.100.113:/tmp/
 ssh dpd@192.168.100.113 "sudo mv /tmp/parsers.conf /etc/fluent-bit/parsers.conf"
 ```
 
@@ -59,30 +62,31 @@ Unregister-ScheduledTask -TaskName "MySLT-Log-Agent" -Confirm:$false
 ```
 
 ### 2. Install Fluent Bit
-1. Download the ZIP from [fluentbit.io](https://fluentbit.io/releases/).
-2. Extract to `C:\fluent-bit`.
+1. Download the **Windows MSI** from [fluentbit.io](https://fluentbit.io/releases/).
+2. Run the installer (it defaults to `C:\Program Files (x86)\fluent-bit`).
 
 ### 3. Deploy Configuration
 Run these commands from your **Dashboard Server** (137) to copy the files:
 ```bash
-scp Scripts/fluent-bit-windows.conf Administrator@192.168.100.114:C:\fluent-bit\etc\fluent-bit.conf
-scp Scripts/parsers.conf Administrator@192.168.100.114:C:\fluent-bit\etc\parsers.conf
+scp Scripts/fluent-bit-windows.conf Administrator@192.168.100.114:"C:\Program Files (x86)\fluent-bit\conf\fluent-bit.conf"
+scp Scripts/parsers.conf Administrator@192.168.100.114:"C:\Program Files (x86)\fluent-bit\conf\parsers.conf"
 ```
 
 ### 4. Optional: Start Log Simulator
 If you want to generate test traffic, copy and run the simulator:
 ```powershell
 # Copy the simulator
-scp Scripts/simulate-logs.ps1 Administrator@192.168.100.114:C:\fluent-bit\etc\simulate-logs.ps1
+scp Scripts/simulate-logs.ps1 Administrator@192.168.100.114:"C:\Program Files (x86)\fluent-bit\conf\simulate-logs.ps1"
 
 # Run it (manual)
-powershell -ExecutionPolicy Bypass -File C:\fluent-bit\etc\simulate-logs.ps1 -LogFilePath "C:\Logs\test.log"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files (x86)\fluent-bit\conf\simulate-logs.ps1" -LogFilePath "C:\Logs\test.log"
 ```
 
 ### 5. Start Fluent Bit (as a Service)
-```powershell
-C:\fluent-bit\bin\fluent-bit.exe -c C:\fluent-bit\etc\fluent-bit.conf --install MySLT-Fluent-Bit
-Start-Service MySLT-Fluent-Bit
+Open **Command Prompt as Administrator** and run:
+```cmd
+"C:\Program Files (x86)\fluent-bit\bin\fluent-bit.exe" -c "C:\Program Files (x86)\fluent-bit\conf\fluent-bit.conf" --install MySLT-Fluent-Bit
+net start MySLT-Fluent-Bit
 ```
 
 ---
