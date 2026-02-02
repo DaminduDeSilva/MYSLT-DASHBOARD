@@ -8,7 +8,8 @@ import {
   getApiList,
   getCustomerLogs,
   getTopSuccessApis,
-  getTopErrorApis
+  getTopErrorApis,
+  getApiSuccessRateHistory
 } from '../controllers/dashboardController.js';
 
 const router = express.Router();
@@ -39,5 +40,8 @@ router.get('/top-success-apis', getTopSuccessApis);
 
 // Get top 20 APIs with highest error rate
 router.get('/top-error-apis', getTopErrorApis);
+
+// Get API success rate history over time
+router.get('/api-success-history', getApiSuccessRateHistory);
 
 export default router;

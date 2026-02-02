@@ -569,3 +569,80 @@ export const getTopErrorApis = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get API success rate history over time for a specific API
+ */
+export const getApiSuccessRateHistory = async (req, res) => {
+  try {
+    const { apiNumber, hours = 24, dateFrom, dateTo, serverIdentifier } = req.query;
+
+    // Build query filter
+    const filter = {};
+    
+    if (apiNumber && apiNumber !== 'ALL') {
+      filter.apiNumber = apiNumber;
+    }
+    
+    if (serverIdentifier) {
+      filter.serverIdentifier = serverIdentifier;
+    }
+
+    // Set time range - default to last 24 hours
+    const hoursNum = parseInt(hours);
+    const now = new Date();
+    const startTime = dateFrom ? new Date(dateFrom) : new Date(now.getTime() - hoursNum * 60 * 60 * 1000);
+    const endTime = dateTo ? new Date(dateTo) : now;
+    
+    filter.date = { $gte: startTime, $lte: endTime };
+
+    // Group by hour and calculate success rate
+    const successRateData = await ApiLog.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$date' },
+            month: { $month: '$date' },
+            day: { $dayOfMonth: '$date' },
+            hour: { $hour: '$date' }
+          },
+          totalRequests: { $sum: 1 },
+          successRequests: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 200] }, 1, 0]
+            }
+          },
+          timestamp: { $first: '$date' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          successRate: {
+            $multiply: [
+              { $divide: ['$successRequests', '$totalRequests'] },
+              100
+            ]
+          },
+          totalRequests: 1,
+          successRequests: 1
+        }
+      },
+      { $sort: { timestamp: 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: successRateData
+    });
+  } catch (error) {
+    console.error('Error in getApiSuccessRateHistory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching API success rate history',
+      error: error.message
+    });
+  }
+};
