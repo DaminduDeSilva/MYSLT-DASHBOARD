@@ -1,9 +1,10 @@
 import express from 'express';
-import { ingestLogs } from '../controllers/logController.js';
+import { ingestLogs, ingestLogStream } from '../controllers/logController.js';
 
 const router = express.Router();
 
-// Define log ingestion route
+// Define log ingestion routes
 router.post('/ingest', ingestLogs);
+router.post('/ingest/stream', ingestLogStream);
 
 export default router;

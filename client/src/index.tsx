@@ -1,5 +1,8 @@
  
 import './index.css';
-import { render } from 'react-dom';
-import { AppRouter } from './AppRouter';
-render(<AppRouter />, document.getElementById('root'));
+import { createRoot } from 'react-dom/client';
+import { MSALApp } from './MSALApp';
+const container = document.getElementById('root');
+if (container) {
+	createRoot(container).render(<MSALApp />);
+}

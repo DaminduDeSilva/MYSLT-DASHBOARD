@@ -1,9 +1,24 @@
 import { useState } from 'react';
+import { useMsal } from '@azure/msal-react';
+import { InteractionType } from '@azure/msal-browser';
 import { useNavigate } from 'react-router-dom';
 import logo from '../Logo/SLTMobitel_Logo.svg.png';
 import { LogIn, User, Lock, AlertCircle, Mail, UserPlus } from 'lucide-react';
 
 export function Login() {
+  const { instance } = useMsal();
+    // Azure AD login handler
+    const handleAzureLogin = async () => {
+      try {
+        await instance.loginPopup({
+          scopes: ["user.read"] // You can adjust scopes as needed
+        });
+        // On success, redirect to dashboard
+        navigate('/dashboard');
+      } catch (error) {
+        setError('Azure login failed');
+      }
+    };
   const navigate = useNavigate();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [username, setUsername] = useState('');
@@ -262,6 +277,18 @@ export function Login() {
                 </>
               )}
             </button>
+
+            {/* Azure AD Login Button (Login only) */}
+            {!isRegisterMode && (
+              <button
+                type="button"
+                onClick={handleAzureLogin}
+                className="w-full py-3 bg-[#0078D4] text-white rounded-lg hover:bg-[#005A9E] transition-colors font-semibold flex items-center justify-center gap-2 mt-2"
+              >
+                {/*<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5L4.5 7.5 12 4l7.5 3.5L12 9.5zm0 2.5l10 5-10 5-10-5 10-5zm0 7.5l7.5-3.5L12 14l-7.5 3.5L12 19.5z" fill="#fff"/></svg>*/}
+                Sign in with Azure
+              </button>
+            )}
           </form>
 
           {/* Toggle between Login and Register */}
@@ -293,6 +320,7 @@ export function Login() {
                 <p className="text-center">Username: <span className="font-mono text-blue-400">admin</span></p>
                 <p className="text-center">Password: <span className="font-mono text-blue-400">123456</span></p>
               </div>
+              <p className="text-xs text-slate-400 text-center mt-2">Or use Azure AD login above.</p>
             </div>
           )}
         </div>

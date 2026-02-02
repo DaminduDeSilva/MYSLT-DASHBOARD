@@ -27,3 +27,10 @@ npx vite build
 ```
 
 This produces the production assets in `client/dist`.
+## Log Monitoring (Production)
+
+This project uses **Fluent Bit** for production-grade log ingestion from remote Linux and Windows servers.
+
+- **Backend Endpoint**: `http://[DASHBOARD_IP]:5001/api/logs/ingest/stream` (NDJSON)
+- **Agent Configs**: Located in the [Scripts/](file:///var/www/MYSLT-DASHBOARD/Scripts/) folder.
+- **Rollout Guide**: See [TRANSITION_GUIDE.md](file:///var/www/MYSLT-DASHBOARD/Scripts/TRANSITION_GUIDE.md) for step-by-step instructions.
