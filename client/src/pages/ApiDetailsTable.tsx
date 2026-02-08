@@ -81,7 +81,8 @@
  
 import { useEffect, useState } from 'react';
 import { dashboardApi } from '../services/api';
-import { TrendingUp, TrendingDown, List } from 'lucide-react';
+import { TrendingUp, TrendingDown, List, Eye } from 'lucide-react';
+import { ApiSuccessRateModal } from '../components/ApiSuccessRateModal';
 
 interface ApiData {
   apiId: string;
@@ -98,6 +99,18 @@ export function ApiDetailsTable() {
   const [apiData, setApiData] = useState<ApiData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [selectedApi, setSelectedApi] = useState<ApiData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleViewClick = (api: ApiData) => {
+    setSelectedApi(api);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedApi(null);
+  };
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -240,6 +253,9 @@ export function ApiDetailsTable() {
               <th className="text-left py-3 px-4 text-slate-400 font-medium">
                 Request Count
               </th>
+              <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -250,9 +266,28 @@ export function ApiDetailsTable() {
                 <td className="py-4 px-4 text-slate-300">{api.successRate}</td>
                 <td className="py-4 px-4 text-slate-300">{api.avgResponse}</td>
                 <td className="py-4 px-4 text-slate-300">{api.requestCount}</td>
+                <td className="py-4 px-4">
+                  <button
+                    onClick={() => handleViewClick(api)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Eye size={16} />
+                    View
+                  </button>
+                </td>
               </tr>)}
           </tbody>
         </table>
       </div>
+
+      {/* Success Rate Modal */}
+      {selectedApi && (
+        <ApiSuccessRateModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          apiId={selectedApi.apiId}
+          apiPath={selectedApi.path}
+        />
+      )}
     </div>;
 }

@@ -134,6 +134,23 @@ export const dashboardApi = {
     const queryString = params.toString();
     return apiRequest(`/dashboard/top-error-apis${queryString ? `?${queryString}` : ''}`);
   },
+
+  getApiSuccessRateHistory: async (filters?: {
+    apiNumber?: string;
+    hours?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    serverIdentifier?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, String(value));
+      });
+    }
+    const queryString = params.toString();
+    return apiRequest(`/dashboard/api-success-history${queryString ? `?${queryString}` : ''}`);
+  },
 };
 
 // Server Health API
