@@ -257,16 +257,20 @@ export const getApiSuccessRates = async (req, res) => {
 export const getLiveTraffic = async (req, res) => {
   try {
     const { minutes = 30, serverIdentifier } = req.query;
-    const timeAgo = new Date(Date.now() - minutes * 60000);
+    const now = new Date();
+    const timeAgo = new Date(now.getTime() - minutes * 60000);
 
     const filter = {
-      date: { $gte: timeAgo }
+      date: { $gte: timeAgo, $lte: now }
     };
 
     if (serverIdentifier) {
       filter.serverIdentifier = serverIdentifier;
     }
 
+    // Group by 2-minute intervals for smoother visualization
+    const intervalMinutes = 2;
+    
     const trafficData = await ApiLog.aggregate([
       {
         $match: filter
@@ -274,23 +278,48 @@ export const getLiveTraffic = async (req, res) => {
       {
         $group: {
           _id: {
-            $dateToString: {
-              format: '%H:%M',
-              date: '$date'
-            }
+            $subtract: [
+              { $toLong: '$date' },
+              { $mod: [{ $toLong: '$date' }, intervalMinutes * 60 * 1000] }
+            ]
           },
+          timestamp: { $first: '$date' },
           count: { $sum: 1 }
         }
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          count: 1
+        }
+      }
     ]);
+
+    // Fill in missing time slots with zero values for continuous line
+    const result = [];
+    const intervalMs = intervalMinutes * 60 * 1000;
+    const startTime = Math.floor(timeAgo.getTime() / intervalMs) * intervalMs;
+    const endTime = Math.floor(now.getTime() / intervalMs) * intervalMs;
+    
+    const dataMap = new Map();
+    trafficData.forEach(item => {
+      const roundedTime = Math.floor(new Date(item.timestamp).getTime() / intervalMs) * intervalMs;
+      dataMap.set(roundedTime, item.count);
+    });
+    
+    for (let time = startTime; time <= endTime; time += intervalMs) {
+      const date = new Date(time);
+      result.push({
+        time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        count: dataMap.get(time) || 0
+      });
+    }
 
     res.json({
       success: true,
-      data: trafficData.map(item => ({
-        time: item._id,
-        count: item.count
-      }))
+      data: result
     });
   } catch (error) {
     console.error('Error in getLiveTraffic:', error);
