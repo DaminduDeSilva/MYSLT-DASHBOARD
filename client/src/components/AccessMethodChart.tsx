@@ -74,11 +74,11 @@ export function AccessMethodChart() {
   }, []);
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6">
+    <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
       <h3 className="text-lg font-bold text-white mb-4">Access Method Distribution</h3>
-
-      <ResponsiveContainer width="100%" height={250}>
-        <PieChart>
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
           <defs>
             <linearGradient id="cyanGradient" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#06b6d4" />
@@ -119,8 +119,9 @@ export function AccessMethodChart() {
             itemStyle={{ color: '#fff', fontSize: 13 }}
             formatter={(value: number, name: string) => [value.toLocaleString(), name]}
           />
-        </PieChart>
-      </ResponsiveContainer>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -189,15 +189,15 @@ export function ApiDetailsTable() {
       </div>
     );
   }
-  return <div className="bg-slate-800 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-6">
+  return <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <h3 className="text-lg font-bold text-white">API Details</h3>
         
         {/* Filter Buttons */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilterMode('all')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               filterMode === 'all' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -208,7 +208,7 @@ export function ApiDetailsTable() {
           </button>
           <button
             onClick={() => setFilterMode('success')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               filterMode === 'success' 
                 ? 'bg-green-600 text-white' 
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -219,7 +219,7 @@ export function ApiDetailsTable() {
           </button>
           <button
             onClick={() => setFilterMode('error')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               filterMode === 'error' 
                 ? 'bg-red-600 text-white' 
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -232,7 +232,7 @@ export function ApiDetailsTable() {
       </div>
       
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[900px]">
           <thead>
             <tr className="border-b border-slate-700">
               <th className="text-left py-3 px-4 text-slate-400 font-medium">

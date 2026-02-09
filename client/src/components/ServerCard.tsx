@@ -37,8 +37,8 @@ export function ServerCard({
     value
   }));
   return <div className="bg-slate-800 rounded-xl p-6 shadow-lg">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
             <ServerIcon className="text-blue-600" size={20} />
           </div>

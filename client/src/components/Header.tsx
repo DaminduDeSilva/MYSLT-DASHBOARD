@@ -75,14 +75,14 @@ export function Header() {
   ];
 
   return (
-    <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-6">
-      <div className="flex items-center gap-6 flex-1">
+    <header className="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6 flex-1 min-w-0">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="MySLT Logo" className="h-14 w-auto object-contain select-none" />
+          <img src={logo} alt="MySLT Logo" className="h-12 sm:h-14 w-auto object-contain select-none" />
         </Link>
 
         {/* Navigation Links */}
-        <nav className="flex items-center gap-2">
+        <nav className="flex flex-wrap items-center gap-2">
           {navItems.map(item => (
             <Link
               key={item.path}
@@ -99,7 +99,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="relative flex-1 max-w-md">
+        <div className="relative w-full lg:flex-1 lg:max-w-md">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             size={20}
@@ -112,7 +112,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
        { /*<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
           Export
         </button>*/}

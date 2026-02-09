@@ -114,12 +114,13 @@ export function ResponseTimeChart() {
       window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
     };
   }, []);
-  return <div className="bg-slate-800 rounded-xl p-6">
+  return <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
       <h3 className="text-lg font-bold text-white mb-4">
         API Average Response Time
       </h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data}>
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
@@ -136,7 +137,8 @@ export function ResponseTimeChart() {
           color: '#fff'
         }} />
           <Bar dataKey="responseTime" fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>;
 }

@@ -353,10 +353,10 @@ export function FilterSection() {
     <div className="space-y-4">
       {/* Filter Toggle Button - Only show for authenticated users */}
       {isAuthenticated && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             <Filter size={20} />
             <span>{isOpen ? 'Hide Filters' : 'Show Filters'}</span>
@@ -364,7 +364,7 @@ export function FilterSection() {
           </button>
           <button
             onClick={handleRefreshData}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
             title="Refresh to main dataset"
           >
             <RefreshCw size={20} />
@@ -381,7 +381,7 @@ export function FilterSection() {
 
       {/* Collapsible Filter Panel - Only show for authenticated users */}
       {isAuthenticated && isOpen && (
-        <div className="bg-slate-800 rounded-xl p-6 shadow-lg animate-slideDown">
+        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 shadow-lg animate-slideDown">
           <div className="space-y-4">
             {/* First Row - Main Filters */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">

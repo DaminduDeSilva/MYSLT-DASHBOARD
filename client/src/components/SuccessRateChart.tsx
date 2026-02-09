@@ -118,11 +118,12 @@ export function SuccessRateChart() {
   };
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6">
+    <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
       <h3 className="text-lg font-bold text-white mb-4">API-wise Success Rate</h3>
 
-      <ResponsiveContainer width="100%" height={250}>
-  <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }} barCategoryGap="10%" barGap={8}>
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 10 }} barCategoryGap="20%" barGap={6}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="api" stroke="#94a3b8" />
           <YAxis stroke="#94a3b8" domain={[0, 100]} ticks={[0, 40, 60, 80, 100]} tickFormatter={(v) => `${v}%`} />
@@ -133,13 +134,14 @@ export function SuccessRateChart() {
             formatter={(value: number) => [`${value}%`, 'Success Rate']}
           />
 
-          <Bar dataKey="rate" barSize={150} radius={[6, 6, 0, 0]} label={{ position: 'top', formatter: (val: number) => `${val}%`, fill: '#fff', fontSize: 12 }}>
+          <Bar dataKey="rate" maxBarSize={48} radius={[6, 6, 0, 0]} label={{ position: 'top', formatter: (val: number) => `${val}%`, fill: '#fff', fontSize: 12 }}>
             {data.map((entry, idx) => (
               <Cell key={`cell-${idx}`} fill={getColor(entry.rate)} />
             ))}
           </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -110,12 +110,13 @@ export function LiveTrafficChart() {
       window.removeEventListener('autoRefreshChanged', handleAutoRefreshChange);
     };
   }, []);
-  return <div className="bg-slate-800 rounded-xl p-6">
+  return <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
       <h3 className="text-lg font-bold text-white mb-4">
         Live Traffic Monitor
       </h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <LineChart data={data}>
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
           <XAxis dataKey="time" stroke="#94a3b8" />
           <YAxis stroke="#94a3b8" />
@@ -126,7 +127,8 @@ export function LiveTrafficChart() {
           color: '#fff'
         }} />
           <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} dot={false} name="Requests" />
-        </LineChart>
-      </ResponsiveContainer>
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>;
 }
