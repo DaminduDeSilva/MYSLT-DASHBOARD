@@ -35,12 +35,17 @@ export const getDashboardStats = async (req, res) => {
     const addedServers = await ServerHealth.find().select('serverIp').lean();
     
     // Get statistics
+    const oneMinuteAgo = new Date(Date.now() - 60000);
+    
+    // Build live traffic filter (last minute)
+    const liveTrafficFilter = { ...filter, date: { $gte: oneMinuteAgo } };
+    
     const [
       totalActiveCustomers,
       totalTrafficCount,
       accessMethodStats,
       responseTypeStats,
-      recentLogs,
+      liveTraffic,
       serverRequestStats
     ] = await Promise.all([
       // Unique active customers
@@ -61,11 +66,8 @@ export const getDashboardStats = async (req, res) => {
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
       
-      // Recent logs for live traffic
-      ApiLog.find(filter)
-        .sort({ date: -1 })
-        .limit(100)
-        .select('date customerEmail apiNumber responseTime status'),
+      // Live traffic (requests in last minute) - query database directly
+      ApiLog.countDocuments(liveTrafficFilter),
       
       // Dynamic server request counts (group by serverIdentifier)
       ApiLog.aggregate([
@@ -73,10 +75,6 @@ export const getDashboardStats = async (req, res) => {
         { $group: { _id: '$serverIdentifier', count: { $sum: 1 } } }
       ])
     ]);
-
-    // Calculate live traffic (requests in last minute)
-    const oneMinuteAgo = new Date(Date.now() - 60000);
-    const liveTraffic = recentLogs.filter(log => log.date >= oneMinuteAgo).length;
 
     // Map server IPs to their request counts
     // Convert server IPs to server identifiers for matching with logs
