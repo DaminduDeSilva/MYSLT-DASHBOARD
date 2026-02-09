@@ -37,8 +37,19 @@ export const getDashboardStats = async (req, res) => {
     // Get statistics
     const oneMinuteAgo = new Date(Date.now() - 60000);
     
-    // Build live traffic filter (last minute)
-    const liveTrafficFilter = { ...filter, date: { $gte: oneMinuteAgo } };
+    // Build live traffic filter (last minute only, ignoring user's date filters)
+    const liveTrafficFilter = {};
+    if (apiNumber && apiNumber !== 'ALL') {
+      liveTrafficFilter.apiNumber = apiNumber;
+    }
+    if (customerEmail) {
+      liveTrafficFilter.customerEmail = { $regex: customerEmail, $options: 'i' };
+    }
+    if (serverIdentifier) {
+      liveTrafficFilter.serverIdentifier = serverIdentifier;
+    }
+    // Always use last minute for live traffic
+    liveTrafficFilter.date = { $gte: oneMinuteAgo };
     
     const [
       totalActiveCustomers,
