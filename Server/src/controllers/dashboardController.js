@@ -610,7 +610,7 @@ export const getApiSuccessRateHistory = async (req, res) => {
           totalRequests: { $sum: 1 },
           successRequests: {
             $sum: {
-              $cond: [{ $eq: ['$status', 200] }, 1, 0]
+              $cond: [{ $eq: ['$status', 'Information'] }, 1, 0]
             }
           },
           timestamp: { $first: '$date' }
