@@ -158,21 +158,21 @@ export function AdminPanel() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
+        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Admin Panel</h1>
           <p className="text-slate-400">Manage system settings and configurations</p>
         </div>
 
         {/* Server Management Section */}
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div className="flex items-center gap-3">
               <Server className="text-blue-500" size={24} />
               <h2 className="text-xl font-bold text-white">Server Management</h2>
             </div>
             <button
               onClick={() => setShowAddServerModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus size={18} />
               Add Server
@@ -214,7 +214,7 @@ export function AdminPanel() {
         </div>
 
         {/* Auto Refresh Settings */}
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700">
           <div className="flex items-center gap-3 mb-6">
             <Clock className="text-green-500" size={24} />
             <h2 className="text-xl font-bold text-white">Auto Refresh Settings</h2>
@@ -274,7 +274,7 @@ export function AdminPanel() {
         </div>
 
         {/* Access Methods - Auto-Detected from Logs */}
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <div className="bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-700">
           <div className="flex items-center gap-3 mb-4">
             <GitBranch className="text-purple-500" size={24} />
             <h2 className="text-xl font-bold text-white">Access Methods</h2>

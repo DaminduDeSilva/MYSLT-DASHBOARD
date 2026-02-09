@@ -117,9 +117,9 @@ export function SystemHealth() {
   }
 
   return <div className="space-y-6">
-      <div className="bg-blue-600 rounded-2xl p-8 flex items-center justify-between">
+      <div className="bg-blue-600 rounded-2xl p-6 sm:p-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-white mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
             System Health Monitoring
           </h2>
           <p className="text-blue-100">

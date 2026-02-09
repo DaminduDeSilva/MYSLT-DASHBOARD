@@ -93,8 +93,9 @@ export function ApiSuccessRateModal({ isOpen, onClose, apiId, apiPath }: ApiSucc
             <>
               {/* Chart */}
               <div className="bg-slate-900/50 rounded-lg p-4 mb-6">
-                <ResponsiveContainer width="100%" height={350}>
-                  <LineChart data={data}>
+                <div className="h-64 sm:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis 
                       dataKey="time" 
@@ -133,12 +134,13 @@ export function ApiSuccessRateModal({ isOpen, onClose, apiId, apiPath }: ApiSucc
                       dot={{ fill: '#10b981', r: 4 }}
                       activeDot={{ r: 6 }}
                     />
-                  </LineChart>
-                </ResponsiveContainer>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
 
               {/* Statistics Summary */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-slate-900/50 rounded-lg p-4">
                   <p className="text-slate-400 text-sm mb-1">Average</p>
                   <p className="text-2xl font-bold text-white">

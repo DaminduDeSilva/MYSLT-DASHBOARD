@@ -138,12 +138,13 @@ export function ResponseTypeChart() {
   }, []);
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6">
+    <div className="bg-slate-800 rounded-xl p-4 sm:p-6">
       <h3 className="text-lg font-bold text-white mb-4">
         Response Type Distribution
       </h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data}>
+      <div className="h-56 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
           <defs>
             <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
@@ -174,8 +175,9 @@ export function ResponseTypeChart() {
             <Cell fill="url(#orangeGradient)" />
             <Cell fill="url(#redGradient)" />
           </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

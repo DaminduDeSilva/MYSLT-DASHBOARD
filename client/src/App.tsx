@@ -24,11 +24,11 @@ export function App() {
     return () => clearInterval(id);
   }, [location.pathname, navigate]);
 
-  return <div className="flex w-full min-h-screen bg-slate-900">
+  return <div className="flex w-full min-h-screen bg-slate-900 overflow-x-hidden">
       {/* <Sidebar /> */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

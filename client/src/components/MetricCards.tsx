@@ -249,9 +249,7 @@ export function MetricCards() {
           animation: blink-red 1s ease-in-out infinite;
         }
       `}</style>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4" style={{
-        gridTemplateColumns: `repeat(${Math.min(metrics.length, 6)}, minmax(0, 1fr))`
-      }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
         {metrics.map((metric, index) => (
           <div 
             key={`${metric.change}-${index}`} 
