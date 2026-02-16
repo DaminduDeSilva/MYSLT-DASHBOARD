@@ -55,16 +55,45 @@ export const getDashboardStats = async (req, res) => {
     // Debug logging
     console.log(`[Live Traffic] Checking for logs between ${twoMinutesAgo.toISOString()} and ${now.toISOString()}`);
     
+    // Calculate date ranges for customer comparison (today vs yesterday)
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    
+    const yesterdayEnd = new Date(todayStart);
+    
+    // Build today's customer filter
+    const todayCustomerFilter = { ...filter, date: { $gte: todayStart, $lte: now } };
+    
+    // Build yesterday's customer filter
+    const yesterdayCustomerFilter = {};
+    if (apiNumber && apiNumber !== 'ALL') {
+      yesterdayCustomerFilter.apiNumber = apiNumber;
+    }
+    if (customerEmail) {
+      yesterdayCustomerFilter.customerEmail = { $regex: customerEmail, $options: 'i' };
+    }
+    if (serverIdentifier) {
+      yesterdayCustomerFilter.serverIdentifier = serverIdentifier;
+    }
+    yesterdayCustomerFilter.date = { $gte: yesterdayStart, $lt: yesterdayEnd };
+    
     const [
       totalActiveCustomers,
+      yesterdayActiveCustomers,
       totalTrafficCount,
       accessMethodStats,
       responseTypeStats,
       liveTraffic,
       serverRequestStats
     ] = await Promise.all([
-      // Unique active customers
-      ApiLog.distinct('customerEmail', filter).then(emails => emails.length),
+      // Unique active customers today
+      ApiLog.distinct('customerEmail', todayCustomerFilter).then(emails => emails.length),
+      
+      // Unique active customers yesterday
+      ApiLog.distinct('customerEmail', yesterdayCustomerFilter).then(emails => emails.length),
       
       // Total traffic count
       ApiLog.countDocuments(filter),
@@ -120,6 +149,18 @@ export const getDashboardStats = async (req, res) => {
       serverRequests[serverIp] = matchingStat ? matchingStat.count : 0;
     });
 
+    // Calculate customer change percentage
+    let customerChangePercent = 0;
+    let customerChangeText = 'No change from yesterday';
+    
+    if (yesterdayActiveCustomers > 0) {
+      customerChangePercent = ((totalActiveCustomers - yesterdayActiveCustomers) / yesterdayActiveCustomers) * 100;
+      const sign = customerChangePercent >= 0 ? '+' : '';
+      customerChangeText = `${sign}${customerChangePercent.toFixed(1)}% from yesterday`;
+    } else if (totalActiveCustomers > 0) {
+      customerChangeText = `${totalActiveCustomers} new customers today`;
+    }
+
     res.json({
       success: true,
       data: {
@@ -127,6 +168,7 @@ export const getDashboardStats = async (req, res) => {
         totalTrafficCount,
         liveTraffic,
         serverRequests,
+        customerChange: customerChangeText,
         accessMethodDistribution: accessMethodStats.reduce((acc, item) => {
           acc[item._id] = item.count;
           return acc;
