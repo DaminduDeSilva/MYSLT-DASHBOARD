@@ -9,6 +9,7 @@ interface DashboardStats {
   totalTrafficCount: number;
   liveTraffic: number;
   serverRequests: Record<string, number>;
+  customerChange?: string;
 }
 
 interface MetricCard {
@@ -185,7 +186,7 @@ export function MetricCards() {
     title: 'Total Active Customers',
     value: stats?.totalActiveCustomers.toString() || '0',
     numericValue: stats?.totalActiveCustomers || 0,
-    change: '+12% from last hour',
+    change: stats?.customerChange || 'No data',
     icon: UsersIcon,
     color: 'bg-blue-500',
     textColor: 'text-blue-100',
