@@ -35,9 +35,10 @@ export const getDashboardStats = async (req, res) => {
     const addedServers = await ServerHealth.find().select('serverIp').lean();
     
     // Get statistics
-    const oneMinuteAgo = new Date(Date.now() - 60000);
+    const now = new Date();
+    const twoMinutesAgo = new Date(now.getTime() - 120000); // Last 2 minutes
     
-    // Build live traffic filter (last minute only, ignoring user's date filters)
+    // Build live traffic filter (last 2 minutes only, ignoring user's date filters)
     const liveTrafficFilter = {};
     if (apiNumber && apiNumber !== 'ALL') {
       liveTrafficFilter.apiNumber = apiNumber;
@@ -48,8 +49,11 @@ export const getDashboardStats = async (req, res) => {
     if (serverIdentifier) {
       liveTrafficFilter.serverIdentifier = serverIdentifier;
     }
-    // Always use last minute for live traffic
-    liveTrafficFilter.date = { $gte: oneMinuteAgo };
+    // Always use last 2 minutes for live traffic - with both lower and upper bounds
+    liveTrafficFilter.date = { $gte: twoMinutesAgo, $lte: now };
+    
+    // Debug logging
+    console.log(`[Live Traffic] Checking for logs between ${twoMinutesAgo.toISOString()} and ${now.toISOString()}`);
     
     const [
       totalActiveCustomers,
@@ -86,6 +90,23 @@ export const getDashboardStats = async (req, res) => {
         { $group: { _id: '$serverIdentifier', count: { $sum: 1 } } }
       ])
     ]);
+
+    // Debug logging - check actual live traffic count and sample logs
+    console.log(`[Live Traffic] Found ${liveTraffic} requests in last 2 minutes`);
+    
+    // Get a sample of recent logs to verify dates
+    const sampleRecentLogs = await ApiLog.find({})
+      .sort({ date: -1 })
+      .limit(5)
+      .select('date apiNumber customerEmail')
+      .lean();
+    
+    if (sampleRecentLogs.length > 0) {
+      console.log(`[Live Traffic] Sample of 5 most recent logs:`);
+      sampleRecentLogs.forEach((log, idx) => {
+        console.log(`  ${idx + 1}. Date: ${log.date.toISOString()} (${Math.round((now - log.date) / 1000)}s ago) - API: ${log.apiNumber}`);
+      });
+    }
 
     // Map server IPs to their request counts
     // Convert server IPs to server identifiers for matching with logs
