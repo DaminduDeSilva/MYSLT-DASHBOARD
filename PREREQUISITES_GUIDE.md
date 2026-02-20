@@ -43,7 +43,24 @@ sudo dnf install -y mongodb-org
 sudo systemctl enable --now mongod
 ```
 
-### 1.3 Firewall & Security
+### 1.3 SSL Certificate Setup (.pfx conversion)
+If you have a `.pfx` certificate (e.g., from OpenSSL 1.1.1), use the `-legacy` flag for modern OpenSSL versions:
+
+```bash
+# 1. Create a secure directory for SSL
+sudo mkdir -p /etc/nginx/ssl
+
+# 2. Extract the private key
+openssl pkcs12 -in your_cert.pfx -nocerts -out myslt_privkey.pem -nodes -legacy
+
+# 3. Extract the full certificate chain
+openssl pkcs12 -in your_cert.pfx -nokeys -out myslt_fullchain.pem -legacy
+
+# 4. Move to Nginx SSL directory
+sudo mv myslt_privkey.pem myslt_fullchain.pem /etc/nginx/ssl/
+```
+
+### 1.4 Firewall & Security
 ```bash
 # Allow Nginx to connect to the backend API (Port 5001)
 sudo setsebool -P httpd_can_network_connect 1
@@ -58,22 +75,17 @@ sudo firewall-cmd --reload
 
 ## 📈 2. Monitored Server: RHEL / Rocky Linux
 
-Run these on the remote Linux servers you want to monitor.
-
 ### 2.1 Infrastructure Metrics (SNMP)
 ```bash
-# Install SNMP and utilities
 sudo dnf install -y net-snmp net-snmp-utils
 sudo systemctl enable --now snmpd
-
-# Open SNMP port
 sudo firewall-cmd --add-service=snmp --permanent
 sudo firewall-cmd --reload
 ```
 
 ### 2.2 Log Streaming (Fluent Bit)
 ```bash
-# Add Fluent Bit Repository
+# Add Fluent Bit Repo & Install
 sudo tee /etc/yum.repos.d/fluent-bit.repo <<EOF
 [fluent-bit]
 name = Fluent Bit
@@ -83,30 +95,26 @@ gpgkey = https://packages.fluentbit.io/fluent-bit.gpg
 enabled = 1
 EOF
 
-# Install and start Fluent Bit
 sudo dnf install -y fluent-bit
 sudo systemctl enable --now fluent-bit
 ```
+
+> [!TIP]
+> **Self-Monitoring:** If you want the dashboard server to monitor itself, run these steps (2.1 and 2.2) on the dashboard server as well.
 
 ---
 
 ## 🪟 3. Monitored Server: Windows
 
-Run these on the remote Windows servers you want to monitor (via PowerShell as Administrator).
-
-### 3.1 Infrastructure Metrics (SNMP)
+### 3.1 SNMP Features (PowerShell)
 ```powershell
-# Install SNMP Features
 Install-WindowsFeature -Name SNMP-Service,SNMP-WMI-Provider
-
-# Allow SNMP through Firewall (Port 161)
 New-NetFirewallRule -DisplayName "SNMP-In" -Direction Inbound -Protocol UDP -LocalPort 161 -Action Allow
 ```
 
-### 3.2 Log Streaming (Fluent Bit)
-1. **Download MSI Installer**: [fluentbit.io](https://fluentbit.io/announcements/v3.0.0/)
-2. **Install manually** via the downloaded wizard.
-3. **Register Service** (after installation):
+### 3.2 Fluent Bit
+1. **MSI Installer**: [fluentbit.io](https://fluentbit.io)
+2. **Register Service**:
 ```cmd
 sc create MySLT-Fluent-Bit binPath= "\"C:\Program Files\fluent-bit\bin\fluent-bit.exe\" -c \"C:\Program Files\fluent-bit\conf\fluent-bit.conf\"" start= auto
 net start MySLT-Fluent-Bit
@@ -114,14 +122,38 @@ net start MySLT-Fluent-Bit
 
 ---
 
-## 📝 Summary Table of Ports
+## 📝 Final Nginx Configuration Template
+Save this to `/etc/nginx/conf.d/myslt.conf`:
 
-| Service | Port | Protocol | Usage |
-| :--- | :--- | :--- | :--- |
-| **HTTP/HTTPS** | 80/443 | TCP | Dashboard Web UI |
-| **Log Ingest** | 5001 | TCP | Fluent Bit -> Dashboard |
-| **SNMP Query** | 161 | UDP | Dashboard -> Remote Server |
-| **MongoDB** | 27017 | TCP | Local database access |
+```nginx
+server {
+    listen 80;
+    server_name dpdlab1.slt.lk; # Replace with your domain
+    return 301 https://$host$request_uri;
+}
 
----
-**Next Steps**: After installing these prerequisites, follow the [DEPLOYMENT_GUIDE.md](file:///var/www/MYSLT-DASHBOARD/DEPLOYMENT_GUIDE.md) to configure the application.
+server {
+    listen 443 ssl default_server;
+    server_name dpdlab1.slt.lk; # Replace with your domain
+
+    ssl_certificate     /etc/nginx/ssl/myslt_fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/myslt_privkey.pem;
+
+    location / {
+        root /var/www/MYSLT-DASHBOARD/client/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
