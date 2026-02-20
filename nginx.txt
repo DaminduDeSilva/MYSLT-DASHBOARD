@@ -1,0 +1,35 @@
+server {
+    listen 80;
+    server_name ;
+    return 301 https://;
+}
+
+server {
+    listen 443 ssl default_server;
+    server_name _;
+
+    ssl_certificate /etc/letsencrypt/live/dpdlab1.slt.lk/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dpdlab1.slt.lk/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    
+    location /api/ {
+        proxy_pass http://127.0.0.1:5001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location / {
+        root /var/www/MYSLT-DASHBOARD/client/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Custom JSON error handler
+    location = /json_error {
+        internal;
+        add_header Content-Type application/json;
+        return 502 '{"error": "Backend Error", "path": "$request_uri"}';
+    }
+}
