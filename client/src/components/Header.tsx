@@ -1,7 +1,7 @@
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../Logo/SLTMobitel_Logo.svg.png';
-import { Search, Bell, User, BarChart3, Server, LogOut, LogIn, Settings } from 'lucide-react';
+import { User, BarChart3, Server, LogOut, LogIn, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 export function Header() {
@@ -98,28 +98,9 @@ export function Header() {
             </Link>
           ))}
         </nav>
-
-        <div className="relative w-full lg:flex-1 lg:max-w-md">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            size={20}
-          />
-          <input
-            type="text"
-            placeholder="Filter your monitoring data..."
-            className="w-full bg-slate-700 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-       { /*<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-          Export
-        </button>*/}
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-700 transition-colors">
-          <Bell size={20} />
-        </button>
-        
         {/* User Dropdown Menu */}
         <div className="relative" ref={dropdownRef}>
           <button 

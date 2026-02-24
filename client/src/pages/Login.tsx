@@ -311,18 +311,6 @@ export function Login() {
                 : "Don't have an account? Register"}
             </button>
           </div>
-
-          {/* Demo Credentials (Login only) */}
-          {!isRegisterMode && (
-            <div className="mt-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-              <p className="text-xs text-slate-400 text-center mb-2">Demo Credentials:</p>
-              <div className="text-xs text-slate-300 space-y-1">
-                <p className="text-center">Username: <span className="font-mono text-blue-400">admin</span></p>
-                <p className="text-center">Password: <span className="font-mono text-blue-400">123456</span></p>
-              </div>
-              <p className="text-xs text-slate-400 text-center mt-2">Or use Azure AD login above.</p>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
